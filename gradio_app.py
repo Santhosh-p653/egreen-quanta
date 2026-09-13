@@ -168,6 +168,22 @@ def run_cvrp_single(instance_idx, k_neighbors, n_particles, n_iterations, seed):
         n_particles=int(n_particles), n_iterations=int(n_iterations), seed=seed,
     )
     n = nearest_neighbor_cvrp(instance, k_neighbors=int(k_neighbors), seed=seed)
+
+    if not q["feasible"] or not n["feasible"]:
+        offending = q["infeasible_customers"] or n["infeasible_customers"]
+        summary = (
+            f"### Instance {instance_idx} is infeasible\n"
+            f"One or more customers' demand exceeds the vehicle capacity "
+            f"({instance['capacity']}), so no single-vehicle route can serve "
+            f"them — no amount of reloading fixes this.\n\n"
+            f"**Offending customer(s):** {offending}\n\n"
+            f"Try a different instance index."
+        )
+        empty_fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, "No result — instance infeasible", ha="center", va="center")
+        ax.axis("off")
+        return summary, empty_fig, empty_fig
+
     improvement = (n["cost"] - q["cost"]) / n["cost"] * 100 if n["cost"] > 0 else 0.0
 
     summary = (
