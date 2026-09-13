@@ -1,9 +1,15 @@
 """
-gradio_app.py — Gradio demo for the Level 1 QPSO traffic-routing prototype.
+gradio_app.py — Gradio demo for the QPSO traffic-routing project.
 
-Tab 1: Single run       — one seed, one graph, route + convergence plot
-Tab 2: Multi-seed bench — N trials at fixed size, mean/std improvement
-Tab 3: Scalability      — improvement % and runtime vs. node count
+Phase 1 (synthetic traffic graph):
+  Tab 1: Single run       — one seed, one graph, route + convergence plot
+  Tab 2: Multi-seed bench — N trials at fixed size, mean/std improvement
+  Tab 3: Scalability      — improvement % and runtime vs. node count
+
+Phase 2 (real CVRP dataset, routed through a sparse congested graph,
+with multi-trip capacity handling):
+  Tab 4: CVRP single instance — one dataset instance, route + convergence
+  Tab 5: CVRP benchmark        — QPSO vs NN across N real instances
 
 Colab: run this cell — .launch(share=True) gives a public URL directly.
 Local:  python gradio_app.py
@@ -20,8 +26,17 @@ from baseline import nearest_neighbor_route
 from qpso import qpso_optimize
 from benchmark import multi_seed_benchmark, scalability_sweep
 
+from cvrp_loader import load_dataset, get_instance, num_instances
+from cvrp_graph import build_congested_graph
+from cvrp_qpso import qpso_optimize_cvrp
+from cvrp_baseline import nearest_neighbor_cvrp
+from cvrp_benchmark import run_cvrp_benchmark
 
-# ---------- Tab 1: single run ----------
+CVRP_DATA = load_dataset()
+CVRP_MAX_IDX = num_instances(CVRP_DATA) - 1
+
+
+# ---------- Tab 1: single run (Phase 1) ----------
 
 def run_single(n_nodes, n_waypoints, n_particles, n_iterations, seed):
     seed = int(seed)
@@ -71,7 +86,7 @@ def run_single(n_nodes, n_waypoints, n_particles, n_iterations, seed):
     return summary, fig1, fig2
 
 
-# ---------- Tab 2: multi-seed benchmark ----------
+# ---------- Tab 2: multi-seed benchmark (Phase 1) ----------
 
 def run_multi_seed(n_nodes, n_waypoints, n_particles, n_iterations, n_trials, base_seed):
     trials, summary = multi_seed_benchmark(
@@ -103,7 +118,7 @@ def run_multi_seed(n_nodes, n_waypoints, n_particles, n_iterations, n_trials, ba
     return text, fig
 
 
-# ---------- Tab 3: scalability sweep ----------
+# ---------- Tab 3: scalability sweep (Phase 1) ----------
 
 def run_scalability(node_min, node_max, node_step, n_waypoints, n_particles, n_iterations, seed):
     node_counts = list(range(int(node_min), int(node_max) + 1, int(node_step)))
@@ -141,13 +156,105 @@ def run_scalability(node_min, node_max, node_step, n_waypoints, n_particles, n_i
     return text, fig
 
 
+# ---------- Tab 4: CVRP single instance (Phase 2) ----------
+
+def run_cvrp_single(instance_idx, k_neighbors, n_particles, n_iterations, seed):
+    instance_idx = int(instance_idx)
+    seed = int(seed)
+    instance = get_instance(CVRP_DATA, instance_idx)
+
+    q = qpso_optimize_cvrp(
+        instance, k_neighbors=int(k_neighbors),
+        n_particles=int(n_particles), n_iterations=int(n_iterations), seed=seed,
+    )
+    n = nearest_neighbor_cvrp(instance, k_neighbors=int(k_neighbors), seed=seed)
+    improvement = (n["cost"] - q["cost"]) / n["cost"] * 100 if n["cost"] > 0 else 0.0
+
+    summary = (
+        f"### Results — instance {instance_idx}\n"
+        f"- **Customers:** {len(instance['customers'])} | "
+        f"**Capacity:** {instance['capacity']} | "
+        f"**Total demand:** {int(instance['demands'].sum())}\n"
+        f"- **QPSO cost:** {q['cost']:.2f}  ({q['n_trips']} depot trips)\n"
+        f"- **Nearest-Neighbor cost:** {n['cost']:.2f}  ({n['n_trips']} depot trips)\n"
+        f"- **QPSO improvement over baseline:** {improvement:.1f}%\n"
+        f"- **QPSO runtime:** {q['runtime']*1000:.1f} ms | "
+        f"**Baseline runtime:** {n['runtime']*1000:.1f} ms\n\n"
+        f"**QPSO route:** {' → '.join(map(str, q['route']))}\n\n"
+        f"**Baseline route:** {' → '.join(map(str, n['route']))}"
+    )
+
+    fig1, ax1 = plt.subplots()
+    ax1.plot(q["history"], label="QPSO best cost")
+    ax1.axhline(n["cost"], color="red", linestyle="--", label="NN baseline")
+    ax1.set_xlabel("Iteration")
+    ax1.set_ylabel("Best route cost")
+    ax1.set_title("Convergence")
+    ax1.legend()
+
+    # Plot using real coordinates (not spring layout) — this is real
+    # geography, so node positions should reflect actual locations.
+    G = build_congested_graph(instance["locations"], k_neighbors=int(k_neighbors), seed=seed)
+    locations = instance["locations"]
+    pos = {i: (float(locations[i][0]), float(locations[i][1])) for i in G.nodes}
+
+    fig2, ax2 = plt.subplots(figsize=(7, 6))
+    nx.draw(G, pos, ax=ax2, node_color="lightgray", node_size=150,
+            with_labels=True, edge_color="lightgray", width=0.5)
+    nx.draw_networkx_nodes(G, pos, nodelist=[instance["depot"]],
+                            node_color="green", node_size=350, ax=ax2)
+    nx.draw_networkx_nodes(G, pos, nodelist=instance["customers"],
+                            node_color="orange", node_size=250, ax=ax2)
+    route_edges = list(zip(q["route"], q["route"][1:]))
+    nx.draw_networkx_edges(G, pos, edgelist=route_edges, edge_color="green", width=2, ax=ax2)
+    ax2.set_title(f"CVRP instance {instance_idx} — QPSO route (green = depot)")
+
+    return summary, fig1, fig2
+
+
+# ---------- Tab 5: CVRP multi-instance benchmark (Phase 2) ----------
+
+def run_cvrp_multi(n_instances, start_idx, k_neighbors, n_particles, n_iterations, seed):
+    trials, summary = run_cvrp_benchmark(
+        n_instances=int(n_instances), start_idx=int(start_idx),
+        k_neighbors=int(k_neighbors), n_particles=int(n_particles),
+        n_iterations=int(n_iterations), seed=int(seed),
+    )
+
+    text = (
+        f"### CVRP benchmark ({summary['n_instances']} real instances, "
+        f"starting at index {int(start_idx)})\n"
+        f"- **Mean improvement over baseline:** {summary['mean_improvement_pct']:.2f}% "
+        f"(± {summary['std_improvement_pct']:.2f})\n"
+        f"- **Range:** {summary['min_improvement_pct']:.1f}% to {summary['max_improvement_pct']:.1f}%\n"
+        f"- **QPSO won or tied in:** {summary['qpso_wins']}/{summary['n_instances']} instances\n"
+        f"- **Mean QPSO cost:** {summary['mean_qpso_cost']:.2f} | "
+        f"**Mean baseline cost:** {summary['mean_nn_cost']:.2f}\n"
+        f"- **Mean depot trips — QPSO:** {summary['mean_qpso_trips']:.2f} | "
+        f"**Baseline:** {summary['mean_nn_trips']:.2f}"
+    )
+
+    improvements = [t["improvement_pct"] for t in trials]
+    fig, ax = plt.subplots()
+    ax.bar(range(1, len(improvements) + 1), improvements, color="seagreen")
+    ax.axhline(summary["mean_improvement_pct"], color="red", linestyle="--",
+               label=f"mean = {summary['mean_improvement_pct']:.1f}%")
+    ax.set_xlabel("Instance (offset from start index)")
+    ax.set_ylabel("QPSO improvement over baseline (%)")
+    ax.set_title("Improvement across real CVRP instances")
+    ax.legend()
+
+    return text, fig
+
+
 # ---------- UI ----------
 
-with gr.Blocks(title="QPSO Traffic Routing — Level 1") as demo:
-    gr.Markdown("# Quantum-Inspired Traffic Route Optimization (QPSO) — Level 1 Prototype")
+with gr.Blocks(title="QPSO Traffic & CVRP Routing") as demo:
+    gr.Markdown("# Quantum-Inspired Route Optimization (QPSO)")
+    gr.Markdown("SIH26137 — Egreen Quanta, Quantum Technology Vertical")
 
     with gr.Tabs():
-        with gr.Tab("Single run"):
+        with gr.Tab("Phase 1: Single run (synthetic traffic)"):
             with gr.Row():
                 with gr.Column(scale=1):
                     s_nodes = gr.Slider(10, 40, value=20, step=1, label="Number of intersections (nodes)")
@@ -164,7 +271,7 @@ with gr.Blocks(title="QPSO Traffic Routing — Level 1") as demo:
             s_btn.click(run_single, [s_nodes, s_wp, s_particles, s_iters, s_seed],
                         [s_summary, s_conv, s_graph])
 
-        with gr.Tab("Multi-seed benchmark"):
+        with gr.Tab("Phase 1: Multi-seed benchmark"):
             gr.Markdown("Runs QPSO vs. baseline across N independent seeds at a fixed "
                         "problem size — use this to report mean ± std improvement instead "
                         "of a single run's number.")
@@ -183,7 +290,7 @@ with gr.Blocks(title="QPSO Traffic Routing — Level 1") as demo:
             m_btn.click(run_multi_seed, [m_nodes, m_wp, m_particles, m_iters, m_trials, m_seed],
                         [m_summary, m_plot])
 
-        with gr.Tab("Scalability sweep"):
+        with gr.Tab("Phase 1: Scalability sweep"):
             gr.Markdown("Runs one trial at each node count — use this to show how QPSO's "
                         "improvement and runtime behave as problem size grows.")
             with gr.Row():
@@ -202,6 +309,47 @@ with gr.Blocks(title="QPSO Traffic Routing — Level 1") as demo:
             sc_btn.click(run_scalability,
                          [sc_min, sc_max, sc_step, sc_wp, sc_particles, sc_iters, sc_seed],
                          [sc_summary, sc_plot])
+
+        with gr.Tab("Phase 2: CVRP single instance"):
+            gr.Markdown("Routes a real CVRP dataset instance through a sparse congested "
+                        "graph (not straight-line distance), with genuine multi-trip "
+                        "capacity handling — exceeding capacity mid-route forces a real "
+                        "depot reload, which QPSO has to plan around.")
+            with gr.Row():
+                with gr.Column(scale=1):
+                    c_idx = gr.Slider(0, CVRP_MAX_IDX, value=0, step=1, label="Dataset instance index")
+                    c_k = gr.Slider(2, 8, value=4, step=1, label="Graph connectivity (k nearest neighbors)")
+                    c_particles = gr.Slider(10, 80, value=30, step=1, label="QPSO swarm size")
+                    c_iters = gr.Slider(20, 300, value=100, step=1, label="QPSO iterations")
+                    c_seed = gr.Number(value=1, label="Random seed")
+                    c_btn = gr.Button("Run simulation", variant="primary")
+                with gr.Column(scale=2):
+                    c_summary = gr.Markdown()
+            with gr.Row():
+                c_conv = gr.Plot(label="Convergence curve")
+                c_graph = gr.Plot(label="Real-coordinate network with QPSO route")
+            c_btn.click(run_cvrp_single, [c_idx, c_k, c_particles, c_iters, c_seed],
+                        [c_summary, c_conv, c_graph])
+
+        with gr.Tab("Phase 2: CVRP benchmark"):
+            gr.Markdown("Runs QPSO vs. Nearest-Neighbor across N real dataset instances "
+                        "(not synthetic random seeds) — systematic benchmarking on real "
+                        "CVRP data, per the problem statement's requirement.")
+            with gr.Row():
+                with gr.Column(scale=1):
+                    cm_n = gr.Slider(3, 30, value=15, step=1, label="Number of instances")
+                    cm_start = gr.Slider(0, CVRP_MAX_IDX, value=0, step=1, label="Start index")
+                    cm_k = gr.Slider(2, 8, value=4, step=1, label="Graph connectivity (k)")
+                    cm_particles = gr.Slider(10, 80, value=30, step=1, label="QPSO swarm size")
+                    cm_iters = gr.Slider(20, 300, value=100, step=1, label="QPSO iterations")
+                    cm_seed = gr.Number(value=1, label="Seed")
+                    cm_btn = gr.Button("Run benchmark", variant="primary")
+                with gr.Column(scale=2):
+                    cm_summary = gr.Markdown()
+            cm_plot = gr.Plot(label="Improvement per instance")
+            cm_btn.click(run_cvrp_multi,
+                         [cm_n, cm_start, cm_k, cm_particles, cm_iters, cm_seed],
+                         [cm_summary, cm_plot])
 
 if __name__ == "__main__":
     demo.launch(share=True)
