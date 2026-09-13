@@ -1,3 +1,4 @@
+
 """
 qpso.py
 Quantum-inspired Particle Swarm Optimization (Sun, Feng & Xu, 2004)
@@ -114,4 +115,3 @@ if __name__ == "__main__":
     print(f"Best route: {result['route']}")
     print(f"Cost: {result['cost']:.2f} min")
     print(f"Runtime: {result['runtime']*1000:.2f} ms")
-  
