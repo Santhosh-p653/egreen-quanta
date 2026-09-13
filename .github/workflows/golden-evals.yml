@@ -1,0 +1,51 @@
+name: Golden Evals
+
+# Runs the sampling-based QPSO vs baseline evaluation (Latin Hypercube,
+# Sobol, and Orthogonal Array parameter sampling) and uploads the
+# results as a downloadable .xlsx artifact — reproducible evidence for
+# the SIH review, not just a locally-run, unrepeatable number.
+
+on:
+  workflow_dispatch:      # manual "Run workflow" button in the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - "golden_eval.py"
+      - "sampling.py"
+      - "qpso.py"
+      - "baseline.py"
+      - "graph_model.py"
+      - ".github/workflows/golden-evals.yml"
+  pull_request:
+    branches: [main]
+
+jobs:
+  golden-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pandas openpyxl scipy
+
+      - name: Run golden evaluation
+        run: |
+          python golden_eval.py \
+            --lhs-samples 8 \
+            --sobol-samples 8 \
+            --output golden_eval_results.xlsx
+
+      - name: Upload evaluation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-eval-results
+          path: golden_eval_results.xlsx
+          retention-days: 90
