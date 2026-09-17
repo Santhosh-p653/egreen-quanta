@@ -67,16 +67,16 @@ $$\Delta c_{\text{new}}(k) = c(v_0, k) + c(k, v_0)$$
 
 ```mermaid
 flowchart TD
-    A["Seed First Trip: [depot, k0, depot]"] --> B{"Any unvisited customers remaining?"}
+    A["Seed First Trip: depot-k0-depot"] --> B{"Any unvisited customers remaining?"}
     B -- No --> C["Concatenate trips into Final Route"]
     B -- Yes --> D["For each unvisited customer k"]
     D --> E["Calculate Delta c for every edge in capacity-feasible trips"]
-    D --> F["Calculate Delta c_new for opening a new trip [depot, k, depot]"]
+    D --> F["Calculate Delta c_new for opening a new trip: depot-k-depot"]
     E --> G["Identify candidate with minimal Delta cost"]
     F --> G
     G --> H{"Is best choice an edge insertion or new trip?"}
     H -- Edge Insertion --> I["Insert k into chosen trip between (u, v); update trip load"]
-    H -- New Trip --> J["Create new trip [depot, k, depot]"]
+    H -- New Trip --> J["Create new trip: depot-k-depot"]
     I --> K["Remove k from unvisited set"]
     J --> K
     K --> B

@@ -547,3 +547,166 @@ from cherry-picking a favorable run, even if no cherry-picking actually
 occurred. This is precisely why the earlier single-run results in this
 project ("QPSO beat baseline by 12.7%!") needed to be followed up with
 these benchmarking methods before being treated as real evidence.
+
+---
+
+## 9. Clarke-Wright Savings algorithm
+
+### Mathematical formulation
+
+For depot $v_0$ and customer nodes $i, j \in V \setminus \{v_0\}$, the initial baseline serves each customer via isolated back-and-forth round trips $(v_0 \to i \to v_0)$ and $(v_0 \to j \to v_0)$.
+
+Merging the two trips into a combined loop $(v_0 \to \dots \to i \to j \to \dots \to v_0)$ replaces the depot edges $(i, v_0)$ and $(v_0, j)$ with inter-customer road $(i, j)$. The savings $S_{ij}$ is:
+
+```
+S_{ij} = c(i, v_0) + c(v_0, j) - c(i, j)
+```
+
+Merges are executed greedily by descending $S_{ij} > 0$ subject to:
+1. $i$ and $j$ belong to different subroutes.
+2. Both $i$ and $j$ are adjacent to the depot in their respective subroutes (interior nodes cannot be merged without breaking single-vehicle path topology).
+3. Cumulative demand of merged route $\sum_{u \in R} d_u \le C$.
+
+### Underlying concept
+
+Unlike Nearest-Neighbor (which asks myopically: "Which unvisited customer is closest right now?"), Clarke-Wright evaluates the **global opportunity cost** of combining trips. A pair of distant customers that happen to be close to each other yield massive savings because combining them eliminates two long round trips to the depot.
+
+### Edge cases / where it can fail
+
+- **Interior node locking:** Once a customer is merged into the interior of a subroute, its connections are frozen. A subsequent pair with theoretically better downstream routing can never merge with it, locking the algorithm into suboptimal tour topologies.
+- **Asymmetric road congestion:** If $c(i, v_0) \neq c(v_0, i)$ due to directional traffic, standard undirected savings formulas become distorted, requiring asymmetric directed savings evaluations.
+- **Sparsely clustered customers:** When customers are uniformly dispersed radially around the depot, savings between any two customers are low, causing the heuristic to degenerate into near-isolated trips.
+
+### What happens if a step is removed
+
+If the endpoint adjacency check is omitted, interior nodes would be spliced, forming branching trees or cycles rather than a single continuous vehicle path.
+
+---
+
+## 10. Cheapest Insertion heuristic
+
+### Mathematical formulation
+
+Let current partial route be $T = (u_1, u_2, \dots, u_m, u_1)$. For any unvisited customer $k$ and edge $(u_p, u_{p+1}) \in T$, the incremental detour cost is:
+
+```
+Δc(u_p, k, u_{p+1}) = c(u_p, k) + c(k, u_{p+1}) - c(u_p, u_{p+1})
+```
+
+The algorithm selects the candidate $(k^*, p^*)$ that minimizes $\Delta c$:
+
+```
+(k*, p*) = argmin_{k, p} Δc(u_p, k, u_{p+1})
+```
+
+In CVRP, if inserting $k^*$ into any existing trip violates capacity $C$, the algorithm evaluates initiating a new trip $(v_0 \to k \to v_0)$ with $\Delta c_{\text{new}} = c(v_0, k) + c(k, v_0)$.
+
+### Underlying concept
+
+Cheapest Insertion bridges greedy selection with tour geometry. Unlike Nearest-Neighbor (which only tacks stops onto the end of the route), Cheapest Insertion can splice a customer anywhere along the active perimeter, preventing the vehicle from getting stranded at the route's end.
+
+### Edge cases / where it can fail
+
+- **Self-crossing loops:** In dense urban road clusters, early insertions expand the perimeter, and subsequent insertions can create crossed edges that require 2-opt post-processing to untangle.
+- **Early large detours:** An isolated customer far from the depot might be inserted early between two central nodes, permanently expanding the route bounding box.
+
+---
+
+## 11. Quantum Walk Optimization Algorithm (QWOA — State-Vector Simulation)
+
+### Mathematical formulation
+
+Simulates the exact Schrödinger wave evolution of a state-vector $|\psi(t)\rangle$ on the permutation Hilbert space $\mathcal{H}_{S_n} = \text{span}\{|\pi\rangle : \pi \in S_n\}$ of dimension $D = n!$:
+
+```
+|ψ_0⟩ = (1 / sqrt(n!)) Σ_{π ∈ S_n} |π⟩       (Uniform Quantum Superposition)
+```
+
+1. **Problem Hamiltonian ($H_C$):** Diagonal operator encoding route travel costs:
+   ```
+   H_C |π⟩ = C(π) |π⟩
+   U_C(γ) = exp(-i γ H_C)
+   ```
+2. **Mixer / Quantum Walk Hamiltonian ($H_M$):** Continuous-time walk on the Cayley graph of $S_n$ under transpositions:
+   ```
+   H_M = Σ_{π, τ} |τ · π⟩ ⟨π|
+   U_M(β) = exp(-i β H_M)
+   ```
+3. **Ansatz Propagation:**
+   ```
+   |ψ(γ, β)⟩ = prod_{l=1}^p [ U_M(β_l) U_C(γ_l) ] |ψ_0⟩
+   ```
+4. **Born Measurement Probability:**
+   ```
+   P(π) = |⟨π | ψ⟩|^2 = |ψ_π|^2
+   ```
+
+### Underlying concept
+
+Demonstrates **genuine quantum interference**: probability amplitudes constructively interfere along low-cost routes and destructively cancel along high-cost routes. Unlike heuristic search, state-vector simulation explores all $n!$ configurations in quantum superposition simultaneously.
+
+### Edge cases / where it can fail
+
+- **Classical state-vector explosion:** Dimension scales as $n!$ ($8! = 40,320$; $10! = 3,628,800$). Beyond $n=8$ nodes, classical state-vector simulation requires gigabytes of RAM, requiring physical quantum processors or Trotterized circuit approximations.
+- **Phase periodicity:** If cost spectrum scaling is too large, phase rotations wrap around $2\pi$, causing destructive interference at optimal states. Normalizing costs to $[0, 2\pi]$ is essential.
+
+---
+
+## 12. Classical Velocity-Based PSO vs. Quantum-Behaved PSO
+
+### Mathematical formulation
+
+Classical PSO updates continuous position $\mathbf{x}_i$ and velocity $\mathbf{v}_i$:
+
+```
+v_i(t+1) = w v_i(t) + c1 r1 (p_i - x_i(t)) + c2 r2 (g - x_i(t))
+x_i(t+1) = x_i(t) + v_i(t+1)
+```
+
+QPSO eliminates velocity entirely, modeling particles bound to an attractive delta-potential well:
+
+```
+p_i = φ P_i + (1 - φ) G
+x_i(t+1) = p_i ± β |m_best - x_i(t)| ln(1 / u)
+```
+
+### Underlying concept
+
+In classical PSO, particles have physical momentum ($w \mathbf{v}$). If a particle moves too fast, it shoots past the optimal basin ("flying out of bounds"), requiring artificial velocity clipping ($v_{\max}$). QPSO treats position probabilistically: particles can tunnel out of steep local minima via the exponential tails of the wave function without needing momentum.
+
+---
+
+## 13. Genetic Algorithm (GA-OX vs. GA-PMX)
+
+### Mathematical formulation
+
+- **Order Crossover (GA-OX):** Selects a contiguous segment from Parent 1, preserving relative ordering of remaining nodes from Parent 2. Ideal for routing problems where relative stop sequence matters more than absolute coordinates.
+- **Partially Mapped Crossover (GA-PMX):** Builds position-to-position mapping between parents. Preserves absolute stop positioning in the chromosome.
+
+### Failure modes
+
+- **Premature convergence:** If selection pressure (tournament size) is too aggressive, the population collapses onto a homogeneous suboptimal route within early generations.
+- **Lethal mutations:** High mutation rates turn GA into random walk, destroying beneficial building blocks.
+
+---
+
+## 14. Real-World Road Network Modeling (OSMnx & Coimbatore GPS Coordinates)
+
+### Mathematical formulation
+
+Nodes $v_i = (\text{lat}_i, \text{lon}_i)$ correspond to real Coimbatore transit hubs. Great-circle distance is computed via the Haversine equation:
+
+```
+a = sin^2(Δφ/2) + cos(φ1) cos(φ2) sin^2(Δλ/2)
+d = 2 R atan2(sqrt(a), sqrt(1 - a))
+```
+
+Edge travel time in minutes:
+
+```
+time_min = (distance_km / speed_kmh) × 60 × congestion_factor
+```
+
+### Concept
+
+Synthetic random coordinate graphs do not reflect urban choke points. Real arterial corridors (Avinashi Road, Trichy Road, Cross Cut Road) have fixed intersection bottlenecks, making Dijkstra shortest paths over real road networks significantly more realistic than abstract Euclidean distance.

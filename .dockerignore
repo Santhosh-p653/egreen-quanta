@@ -11,3 +11,9 @@ venv
 *.xlsx
 .DS_Store
 Thumbs.db
+node_modules
+*/node_modules
+.next
+*/.next
+out
+*/out

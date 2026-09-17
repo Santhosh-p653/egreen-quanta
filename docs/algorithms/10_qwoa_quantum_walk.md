@@ -83,17 +83,17 @@ $$\langle H_C \rangle = \langle \psi | H_C | \psi \rangle = \sum_{\pi \in S_n} P
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Init as Uniform Superposition |psi_0>
+    participant Init as Uniform Superposition psi_0
     participant Phase as Phase Operator U_C(gamma)
     participant Walk as Quantum Walk Mixer U_M(beta)
     participant Measure as Born Measurement P(pi)
 
     Note over Init: All routes have equal amplitude: P = 1/D
-    Init->>Phase: Rotates phases: exp(-i * gamma * Cost(pi))
+    Init->>Phase: Rotates phases: exp(-i * gamma * Cost)
     Note over Phase: High-cost routes acquire rapid phase shifts
     Phase->>Walk: Sparse matrix exp(-i * beta * H_M)
     Note over Walk: Quantum Interference: Destructive on bad routes, Constructive on optimal routes
-    Walk->>Measure: Projective measurement |psi_pi|^2
+    Walk->>Measure: Projective measurement (Born probabilities)
     Note over Measure: Amplified probability on ground-state route!
 ```
 
@@ -103,15 +103,15 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A["Input: Congested Graph G, Depot, Waypoints (<= 8 nodes)"] --> B["Build Permutation Basis S_n (Dimension D = n!)"]
+    A["Input: Congested Graph G, Depot, Waypoints (at most 8 nodes)"] --> B["Build Permutation Basis S_n (Dimension D = n!)"]
     B --> C["Precompute Graph Segment Costs C(pi)"]
     C --> D["Construct Diagonal Problem Hamiltonian H_C"]
     C --> E["Construct Cayley Graph Sparse Mixer H_M"]
-    D --> F["Initialize Uniform Superposition State Vector |psi_0>"]
+    D --> F["Initialize Uniform Superposition State Vector psi_0"]
     E --> F
     F --> G["Apply Layer l: Phase Unitary U_C(gamma)"]
     G --> H["Apply Layer l: Mixer Unitary U_M(beta) via expm_multiply"]
-    H --> I{"More layers l < p?"}
+    H --> I{"More layers remaining?"}
     I -- Yes --> G
     I -- No --> J["Compute Probabilities P(pi) = |psi_pi|^2"]
     J --> K["Verify Unitarity (Sum P = 1.0)"]

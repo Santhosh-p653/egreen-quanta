@@ -56,7 +56,7 @@ $$w_{\text{base}}(u, v) = d(u, v)$$
 flowchart TD
     A["Input: Node Coordinates V"] --> B["Compute Pairwise Distances d(u,v)"]
     B --> C["For each node, connect to k closest neighbors"]
-    C --> D{"Is Graph Connected? (Components = 1)"}
+    C --> D{"Is Graph Connected?"}
     D -- Yes --> F["Assign Base Edge Weights w = d(u,v)"]
     D -- No --> E["Find Closest Node Pair Between Disjoint Islands"]
     E --> G["Add Bridging Road"]

@@ -33,8 +33,8 @@ flowchart LR
         D["Depot"] -->|Fast short hop| A["Stop A (dist=1)"]
         A -->|Fast short hop| B["Stop B (dist=1)"]
         B -->|Fast short hop| C["Stop C (dist=1)"]
-        C ==>|Stranded! Catastrophic jump| Z["Isolated Stop Z (dist=50)"]
-        Z ==>|Long return trip| D
+        C -->|Stranded! Catastrophic jump| Z["Isolated Stop Z (dist=50)"]
+        Z -->|Long return trip| D
     end
 ```
 

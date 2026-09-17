@@ -94,3 +94,17 @@ Split `docs/algorithms.md` into 11 dedicated, deep-dive technical documents in [
 * **[NEW] [`Dockerfile`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/Dockerfile):** Production container configuration utilizing `python:3.12-slim`, pre-configured with `GRADIO_SERVER_NAME="0.0.0.0"` and `GRADIO_SERVER_PORT=7860`, exposing port `7860` for web UI access.
 * **[NEW] [`.dockerignore`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/.dockerignore):** Excludes `.git`, `.github`, cache directories, and temporary data from Docker build contexts.
 * **[NEW] [`.github/workflows/containerize.yml`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/.github/workflows/containerize.yml):** GitHub Actions workflow to build, tag, and publish Docker container images directly to GitHub Container Registry (`ghcr.io`), featuring Buildx build caching and automated image versioning tags.
+
+---
+
+### 6. Operations Dashboard Migration (FastAPI + Next.js)
+* **[NEW] [`osm_road_network.py`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/osm_road_network.py):** Authentic Coimbatore road network graph featuring 12 landmark nodes with genuine GPS coordinates (~11.00–11.08° N, ~76.92–77.05° E), arterial roads (Avinashi, Trichy, Sathy, Mettupalayam), dynamic traffic congestion, and polyline route geometry generation.
+* **[NEW] [`classical_pso.py`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/classical_pso.py):** Standard velocity- and inertia-driven Particle Swarm Optimization baseline ($v_{t+1} = w v_t + c_1 r_1 (p - x) + c_2 r_2 (g - x)$) to demonstrate the classical swarm baseline that QPSO outperforms.
+* **[NEW] [`ga.py`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/ga.py):** Genetic Algorithm baseline supporting both Order Crossover (GA-OX) and Partially Mapped Crossover (GA-PMX).
+* **[NEW] [`api.py`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/api.py):** FastAPI backend providing `/api/optimize`, `/api/compare`, `/api/algorithms`, `/api/network/landmarks`, and WebSocket streaming (`/api/optimize/stream`).
+* **[NEW] [`frontend/`](file:///c:/Users/Nivetha%20A/OneDrive/Documents/egreen-quanta/frontend):** Next.js (App Router, TypeScript, Tailwind CSS) operations dashboard:
+  - **Design Tokens:** Strict traffic-signal semantics (`signal-red` for before/congestion, `signal-amber` for in-progress, `signal-green` for after/optimized) across Dark and Light modes (`next-themes`).
+  - **Typography:** IBM Plex Sans for general UI text; IBM Plex Mono strictly for numeric readouts.
+  - **Persistent 3-Column Layout:** Left Input Panel (always visible), Center Canvas (Live Simulation with real Leaflet Coimbatore map, Compare Algorithms, Performance Trends), Right Results Panel (always visible).
+  - **Convergence Graph:** Flat red reference line at baseline cost, green QPSO curve, highlighted crossover point (*"the moment QPSO beat baseline"*), and terminal cost label.
+  - **Anti-Pattern Compliance:** No purple/violet gradients, no warm cream/terracotta, no decorative monospace, and zero internal phase jargon.

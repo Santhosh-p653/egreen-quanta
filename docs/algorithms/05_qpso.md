@@ -78,15 +78,15 @@ flowchart TD
     F --> G["Compute Attractor: p = phi*P_i + (1-phi)*G"]
     G --> H["Quantum Jump: x = p ± beta*|mbest - x|*ln(1/u)"]
     H --> I["Decode Route & Evaluate Cost"]
-    I --> J{"Cost < Personal Best?"}
+    I --> J{"Cost less than Personal Best?"}
     J -- Yes --> K["Update P_i"]
-    K --> L{"Cost < Global Best?"}
+    K --> L{"Cost less than Global Best?"}
     L -- Yes --> M["Update G"]
     L -- No --> N{"All particles updated?"}
     J -- No --> N
     M --> N
     N -- No --> F
-    N -- Yes --> O{"Iteration == T_max?"}
+    N -- Yes --> O{"Max iterations reached?"}
     O -- No --> D
     O -- Yes --> P["Output: Global Best Route G"]
 ```

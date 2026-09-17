@@ -43,9 +43,9 @@ $$W \leftarrow W + \mathbf{C}_{u, v_0}$$
 ```mermaid
 flowchart TD
     A["Start at Depot, Load L = 0, Trip Count = 1"] --> B["Take next customer c from sequence pi"]
-    B --> C{"Does L + demand[c] > Capacity C?"}
+    B --> C{"Does Load + Demand exceed Capacity C?"}
     C -- Yes --> D["Forced Depot Return: Add cost to depot, Reset L = 0, Increment Trip Count"]
-    D --> E["Travel to Customer c: Add cost, L += demand[c]"]
+    D --> E["Travel to Customer c: Add cost, L += demand(c)"]
     C -- No --> E
     E --> F{"More customers in pi?"}
     F -- Yes --> B

@@ -63,12 +63,12 @@ $$\sum_{u \in R_a} d_u + \sum_{v \in R_b} d_v \le C$$
 
 ```mermaid
 flowchart TD
-    A["Initialize isolated routes: [depot, i, depot] for all i"] --> B["Compute Savings Matrix: S_ij = c(i,0) + c(0,j) - c(i,j)"]
+    A["Initialize isolated routes: depot-i-depot for all i"] --> B["Compute Savings Matrix: S_ij = c(i,0) + c(0,j) - c(i,j)"]
     B --> C["Sort pairs (i, j) by Savings descending"]
     C --> D["Pick next largest savings pair (i, j)"]
     D --> E{"Are i and j in different routes?"}
-    E -- No --> J{"More pairs with S > 0?"}
-    E -- Yes --> F{"Does combined demand <= Capacity C?"}
+    E -- No --> J{"More positive savings pairs?"}
+    E -- Yes --> F{"Does combined demand fit within Capacity C?"}
     F -- No --> J
     F -- Yes --> G{"Are both i and j adjacent to depot?"}
     G -- No --> J
@@ -76,7 +76,7 @@ flowchart TD
     H --> I["Update active routes and demands"]
     I --> J
     J -- Yes --> D
-    J -- No --> K["Output: Final Clarke-Wright Route & Trips"]
+    J -- No --> K["Output: Final Clarke-Wright Route and Trips"]
 ```
 
 ---

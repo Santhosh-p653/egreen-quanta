@@ -43,14 +43,14 @@ $$\mathbf{C}_{u, v} = \text{DijkstraShortestPathCost}(G, u, v) \quad \forall u, 
 
 ```mermaid
 flowchart TD
-    A["Target Set K = {Depot} U Customers"] --> B["For each source u in K"]
+    A["Target Set K: Depot and Customers"] --> B["For each source u in K"]
     B --> C["Run Single-Source Dijkstra on Congested Graph G"]
     C --> D["Extract Shortest Path Costs to all v in K"]
-    D --> E["Store in Lookup Table: C[u, v]"]
+    D --> E["Store in Lookup Table C(u,v)"]
     E --> F{"More sources u in K?"}
     F -- Yes --> B
     F -- No --> G["Output: Metric Closure Lookup Table C"]
-    G --> H["O(1) Route Cost Evaluations for Swarm & Baselines"]
+    G --> H["O(1) Route Cost Lookup for Swarms and Baselines"]
 ```
 
 ---

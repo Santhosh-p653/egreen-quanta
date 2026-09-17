@@ -1,0 +1,65 @@
+@import "leaflet/dist/leaflet.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light mode defaults */
+  --bg-base: #F6F7F9;
+  --bg-surface: #FFFFFF;
+  --border-color: #E3E6EA;
+  --text-primary: #12171D;
+  --text-secondary: #5B6472;
+  --signal-red: #D92D3F;
+  --signal-amber: #E0980C;
+  --signal-green: #189A5B;
+  --font-ibm-plex-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-ibm-plex-mono: "IBM Plex Mono", "SF Mono", Consolas, monospace;
+}
+
+.dark {
+  /* Dark mode */
+  --bg-base: #0B0F14;
+  --bg-surface: #12171D;
+  --border-color: #232B33;
+  --text-primary: #EDEFF2;
+  --text-secondary: #8A93A0;
+  --signal-red: #E5484D;
+  --signal-amber: #F5A623;
+  --signal-green: #2ECC71;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ibm-plex-sans);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+/* Leaflet dark/light tile filter adjustments */
+.dark .leaflet-tile-pane {
+  filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.leaflet-container {
+  font-family: var(--font-ibm-plex-sans) !important;
+  background-color: var(--bg-base) !important;
+}
