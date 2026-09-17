@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # Core engine imports
 from osm_road_network import (
     COIMBATORE_LANDMARKS,
+    BENCHMARK_SCENARIOS,
     build_coimbatore_graph,
     get_route_geometry,
 )
@@ -25,6 +26,7 @@ from baseline import nearest_neighbor_route
 from clarke_wright import clarke_wright_route
 from cheapest_insertion import cheapest_insertion_route
 from explainability import build_route_explanation, build_multivehicle_explanation
+from graphhopper_client import generate_osm_cvrp_instance, GraphHopperClient
 
 app = FastAPI(
     title="Coimbatore Traffic Route Optimization API",
@@ -83,6 +85,51 @@ def health():
 def get_landmarks():
     """Returns available Coimbatore transit hubs and delivery points."""
     return list(COIMBATORE_LANDMARKS.values())
+
+
+@app.get("/api/scenarios")
+def get_scenarios():
+    """Returns curated realistic benchmark scenarios spanning up to 30km radius."""
+    return list(BENCHMARK_SCENARIOS.values())
+
+
+class GenerateInstanceRequest(BaseModel):
+    n_stops: int = Field(10, ge=3, le=23, description="Number of customer stops to sample")
+    depot_id: int = Field(0, description="Origin depot landmark ID")
+    radius_km: float = Field(30.0, ge=5.0, le=50.0, description="Max radial distance in km")
+    vehicle_capacity: int = Field(100, description="Vehicle payload capacity")
+    seed: Optional[int] = Field(None, description="Random seed")
+
+
+@app.post("/api/instances/generate")
+def generate_instance(req: GenerateInstanceRequest):
+    """
+    Dynamically samples realistic OpenStreetMap / GraphHopper delivery instances
+    across the greater Coimbatore road network.
+    """
+    return generate_osm_cvrp_instance(
+        n_stops=req.n_stops,
+        depot_id=req.depot_id,
+        radius_km=req.radius_km,
+        vehicle_capacity=req.vehicle_capacity,
+        seed=req.seed,
+    )
+
+
+class MatrixRequest(BaseModel):
+    points: List[List[float]] = Field(..., description="List of [lat, lon] coordinates")
+    traffic_mode: str = Field("real", description="'real' or 'free'")
+
+
+@app.post("/api/instances/matrix")
+def get_distance_time_matrix(req: MatrixRequest):
+    """
+    Extracts road network distance and time matrices using GraphHopper API
+    with automatic offline OSM Dijkstra closure fallback.
+    """
+    client = GraphHopperClient()
+    coords = [(p[0], p[1]) for p in req.points]
+    return client.get_matrix(coords, traffic_mode=req.traffic_mode)
 
 
 @app.get("/api/algorithms")

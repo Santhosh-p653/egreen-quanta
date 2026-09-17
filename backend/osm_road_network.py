@@ -22,7 +22,7 @@ import math
 import numpy as np
 import networkx as nx
 
-# Real Coimbatore GPS coordinates (lat, lon)
+# Real Coimbatore GPS coordinates (lat, lon) — Expanded Greater Metropolitan Network (~30 km radius)
 COIMBATORE_LANDMARKS = {
     0: {"id": 0, "name": "Gandhipuram Central Hub", "lat": 11.0168, "lon": 76.9678, "desc": "Central Bus Terminus & Commercial Core"},
     1: {"id": 1, "name": "RS Puram (DB Road)", "lat": 11.0095, "lon": 76.9485, "desc": "Western Residential & Retail District"},
@@ -36,37 +36,107 @@ COIMBATORE_LANDMARKS = {
     9: {"id": 9, "name": "Saibaba Colony", "lat": 11.0289, "lon": 76.9421, "desc": "Mettupalayam Road North-West Hub"},
     10: {"id": 10, "name": "Ganapathy Commercial Hub", "lat": 11.0345, "lon": 76.9745, "desc": "Sathy Road Arterial Junction"},
     11: {"id": 11, "name": "Saravanampatti Tech Zone", "lat": 11.0792, "lon": 76.9964, "desc": "Northern IT Special Economic Zone"},
+    12: {"id": 12, "name": "Kovaipudur Transit Hub", "lat": 10.9325, "lon": 76.9388, "desc": "South-West Residential & Institutional Valley"},
+    13: {"id": 13, "name": "Kuniyamuthur Junction", "lat": 10.9632, "lon": 76.9530, "desc": "Palakkad Road Gateway & Western Ring Link"},
+    14: {"id": 14, "name": "Sundarapuram Hub", "lat": 10.9520, "lon": 76.9810, "desc": "Pollachi Road Arterial Junction"},
+    15: {"id": 15, "name": "Eachanari Industrial Zone", "lat": 10.9312, "lon": 76.9865, "desc": "Southern Heavy Engineering & SIDCO Industrial Hub"},
+    16: {"id": 16, "name": "Podanur Rail Junction", "lat": 10.9645, "lon": 76.9892, "desc": "Historic Railway Division Terminus"},
+    17: {"id": 17, "name": "Ondipudur Freight Terminal", "lat": 10.9992, "lon": 77.0515, "desc": "Eastern Trichy Road Logistics Yard"},
+    18: {"id": 18, "name": "Sulur Aero Logistics Hub", "lat": 11.0280, "lon": 77.1260, "desc": "Far-East National Highway & Logistics Zone"},
+    19: {"id": 19, "name": "Neelambur NH-544 Bypass", "lat": 11.0660, "lon": 77.0980, "desc": "National Highway 544 Express Interchange"},
+    20: {"id": 20, "name": "Kalapatti Aerospace Zone", "lat": 11.0682, "lon": 77.0320, "desc": "Northern Precision Valve & Aerospace Cluster"},
+    21: {"id": 21, "name": "CHIL SEZ (Keeranatham)", "lat": 11.0995, "lon": 77.0085, "desc": "Major Global IT Campus & Tech Park"},
+    22: {"id": 22, "name": "Thudiyalur Junction", "lat": 11.0815, "lon": 76.9580, "desc": "Mettupalayam Highway (NH-181) Commercial Hub"},
+    23: {"id": 23, "name": "Vadavalli Gateway", "lat": 11.0260, "lon": 76.9045, "desc": "Western Marudhamalai Foothills Arterial Link"},
 }
 
-# Real arterial road segments connecting landmarks (bidirectional edges with road names)
+# Real arterial road segments connecting landmarks (bidirectional edges with road names & speed limits)
 COIMBATORE_ROAD_SEGMENTS = [
     # Avinashi Road Corridor (Eastbound arterial spine)
     (0, 4, {"road": "Avinashi Road", "speed_kmh": 45}),
     (4, 5, {"road": "Avinashi Road", "speed_kmh": 45}),
     (5, 6, {"road": "Avinashi Road / Airport Bypass", "speed_kmh": 55}),
+    (6, 19, {"road": "Avinashi Road NH-544 Link", "speed_kmh": 65}),
+    (19, 18, {"road": "NH-544 to Sulur Express Bypass", "speed_kmh": 70}),
 
     # DB Road / Cowley Brown Road / Cross Cut Road (Central-West connectors)
     (0, 1, {"road": "Cross Cut Rd / DB Rd", "speed_kmh": 35}),
     (1, 3, {"road": "Brooke Bond Rd / State Bank Rd", "speed_kmh": 35}),
     (0, 3, {"road": "Dr. Nanjappa Road", "speed_kmh": 40}),
 
-    # Southern corridors (Ukkadam / Trichy Road)
+    # Southern corridors (Ukkadam / Trichy Road / Palakkad Road)
     (3, 2, {"road": "Collectorate / Ukkadam Bypass", "speed_kmh": 40}),
     (2, 8, {"road": "Sungam Bypass / Valankulam Lake Rd", "speed_kmh": 50}),
     (3, 8, {"road": "Trichy Road (Flyover)", "speed_kmh": 45}),
     (8, 7, {"road": "Trichy Road Arterial", "speed_kmh": 50}),
     (7, 5, {"road": "Kamarajar Road (Singanallur-Hope College)", "speed_kmh": 40}),
+    (7, 17, {"road": "Trichy Road Express", "speed_kmh": 55}),
+    (17, 18, {"road": "Trichy Road (NH-81) to Sulur", "speed_kmh": 65}),
 
-    # North-South cross-connectors
+    # South-West & South Arterials (Kuniyamuthur, Kovaipudur, Eachanari)
+    (2, 13, {"road": "Palakkad Main Road (NH-544)", "speed_kmh": 45}),
+    (13, 12, {"road": "Kovaipudur Main Road", "speed_kmh": 45}),
+    (13, 14, {"road": "Sundarapuram-Kuniyamuthur Link", "speed_kmh": 40}),
+    (2, 14, {"road": "Pollachi Main Road (NH-83)", "speed_kmh": 45}),
+    (14, 15, {"road": "Pollachi Road / Eachanari Bypass", "speed_kmh": 55}),
+    (14, 16, {"road": "Madukkarai-Podanur Link", "speed_kmh": 40}),
+    (16, 7, {"road": "Podanur-Singanallur Road", "speed_kmh": 40}),
+    (15, 16, {"road": "Chettipalayam Industrial Link", "speed_kmh": 50}),
+
+    # Northern Corridors (Mettupalayam Rd / Sathy Rd / IT Corridor)
     (1, 9, {"road": "NSR Road / Mettupalayam Rd", "speed_kmh": 40}),
     (0, 9, {"road": "100 Feet Road / NSR Connector", "speed_kmh": 40}),
+    (9, 22, {"road": "Mettupalayam Road (NH-181)", "speed_kmh": 55}),
+    (22, 11, {"road": "Vellakinar-Saravanampatti Link", "speed_kmh": 45}),
     (0, 10, {"road": "Sathy Road / Ganapathy Flyover", "speed_kmh": 45}),
     (9, 10, {"road": "Sanganoor Road / New 100ft Rd", "speed_kmh": 40}),
     (10, 11, {"road": "Sathy Road (NH 209)", "speed_kmh": 50}),
     (4, 10, {"road": "Peelamedu-Ganapathy Link", "speed_kmh": 35}),
-    (5, 11, {"road": "Kalapatti Main Road / IT Corridor", "speed_kmh": 45}),
+    (11, 21, {"road": "Saravanampatti-CHIL SEZ Main Rd", "speed_kmh": 50}),
+    (21, 20, {"road": "Keeranatham-Kalapatti Link", "speed_kmh": 50}),
+    (5, 20, {"road": "Kalapatti Main Road", "speed_kmh": 45}),
+    (20, 19, {"road": "Kalapatti-Neelambur Bypass", "speed_kmh": 60}),
     (6, 11, {"road": "Thottipalayam / IT Corridor Bypass", "speed_kmh": 50}),
+
+    # Western Gateway Corridors (Vadavalli / Marudhamalai)
+    (1, 23, {"road": "Thondamuthur / Vadavalli Road", "speed_kmh": 45}),
+    (9, 23, {"road": "Edayarpalayam-Vadavalli Road", "speed_kmh": 40}),
+    (23, 22, {"road": "Vadavalli-Thudiyalur Western Ring", "speed_kmh": 50}),
+    (23, 13, {"road": "Perur-Kuniyamuthur Western Bypass", "speed_kmh": 45}),
 ]
+
+BENCHMARK_SCENARIOS = {
+    "cbd_express": {
+        "name": "CBD Commercial Express (5 Stops, ~8 km)",
+        "desc": "Short-radius central logistics loop across Gandhipuram core business hubs.",
+        "source_id": 0,
+        "stops": [1, 3, 4, 9, 10],
+    },
+    "metro_greater": {
+        "name": "Greater Coimbatore Metro (12 Stops, ~32 km — High Differentiation)",
+        "desc": "Wide 30km metropolitan logistics circuit spanning North, South, East, and West hubs.",
+        "source_id": 0,
+        "stops": [1, 2, 6, 7, 11, 14, 15, 18, 19, 21, 22, 23],
+    },
+    "industrial_cargo": {
+        "name": "Airport & Eastern Industrial Cargo (8 Stops, ~24 km)",
+        "desc": "High-speed freight corridor connecting IT SEZ, Airport, and NH-544 logistics depots.",
+        "source_id": 0,
+        "stops": [4, 5, 6, 17, 18, 19, 20, 21],
+    },
+    "north_south": {
+        "name": "North-South Arterial Spine (8 Stops, ~26 km)",
+        "desc": "Traverses heavy commercial traffic corridors from Thudiyalur down to Eachanari SEZ.",
+        "source_id": 0,
+        "stops": [2, 7, 8, 9, 10, 14, 15, 22],
+    },
+    "western_suburbs": {
+        "name": "Western Suburbs & Tech Valley (6 Stops, ~18 km)",
+        "desc": "Western arterial transit loop connecting Vadavalli, Kovaipudur, and Peelamedu.",
+        "source_id": 0,
+        "stops": [1, 4, 9, 12, 13, 23],
+    },
+}
 
 
 def haversine_distance_km(lat1, lon1, lat2, lon2):

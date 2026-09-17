@@ -29,7 +29,7 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   ),
 });
 
-// Fallback landmark fixtures for offline / quickstart rendering
+// Fallback landmark fixtures for offline / quickstart rendering — Expanded 30+ km Metropolitan Network
 const INITIAL_LANDMARKS = [
   { id: 0, name: "Gandhipuram Central Hub", lat: 11.0168, lon: 76.9678, desc: "Central Bus Terminus & Commercial Core" },
   { id: 1, name: "RS Puram (DB Road)", lat: 11.0095, lon: 76.9485, desc: "Western Residential & Retail District" },
@@ -43,6 +43,18 @@ const INITIAL_LANDMARKS = [
   { id: 9, name: "Saibaba Colony", lat: 11.0289, lon: 76.9421, desc: "Mettupalayam Road Hub" },
   { id: 10, name: "Ganapathy Commercial Hub", lat: 11.0345, lon: 76.9745, desc: "Sathy Road Arterial" },
   { id: 11, name: "Saravanampatti Tech Zone", lat: 11.0792, lon: 76.9964, desc: "Northern IT Corridor" },
+  { id: 12, name: "Kovaipudur Transit Hub", lat: 10.9325, lon: 76.9388, desc: "South-West Residential & Institutional Valley" },
+  { id: 13, name: "Kuniyamuthur Junction", lat: 10.9632, lon: 76.9530, desc: "Palakkad Road Gateway & Western Ring Link" },
+  { id: 14, name: "Sundarapuram Hub", lat: 10.9520, lon: 76.9810, desc: "Pollachi Road Arterial Junction" },
+  { id: 15, name: "Eachanari Industrial Zone", lat: 10.9312, lon: 76.9865, desc: "Southern Heavy Engineering & SIDCO Hub" },
+  { id: 16, name: "Podanur Rail Junction", lat: 10.9645, lon: 76.9892, desc: "Historic Railway Division Terminus" },
+  { id: 17, name: "Ondipudur Freight Terminal", lat: 10.9992, lon: 77.0515, desc: "Eastern Trichy Road Logistics Yard" },
+  { id: 18, name: "Sulur Aero Logistics Hub", lat: 11.0280, lon: 77.1260, desc: "Far-East National Highway Logistics Zone" },
+  { id: 19, name: "Neelambur NH-544 Bypass", lat: 11.0660, lon: 77.0980, desc: "NH-544 Express Interchange" },
+  { id: 20, name: "Kalapatti Aerospace Zone", lat: 11.0682, lon: 77.0320, desc: "Northern Precision Valve Cluster" },
+  { id: 21, name: "CHIL SEZ (Keeranatham)", lat: 11.0995, lon: 77.0085, desc: "Major Global IT Campus & Tech Park" },
+  { id: 22, name: "Thudiyalur Junction", lat: 11.0815, lon: 76.9580, desc: "Mettupalayam Highway (NH-181) Hub" },
+  { id: 23, name: "Vadavalli Gateway", lat: 11.0260, lon: 76.9045, desc: "Western Marudhamalai Foothills Link" },
 ];
 
 export default function Dashboard() {
@@ -55,7 +67,8 @@ export default function Dashboard() {
   // Input states
   const [sourceId, setSourceId] = useState(0);
   const [destinationId, setDestinationId] = useState<number | null>(null);
-  const [selectedStops, setSelectedStops] = useState<number[]>([1, 4, 6, 7, 11]);
+  const [selectedStops, setSelectedStops] = useState<number[]>([1, 2, 6, 7, 11, 14, 15, 18, 19, 21, 22, 23]);
+  const [activeScenario, setActiveScenario] = useState("metro_greater");
   const [trafficMode, setTrafficMode] = useState<"real" | "free">("real");
   const [vehicleCapacity, setVehicleCapacity] = useState(100);
   const [vehicleCount, setVehicleCount] = useState(1);
@@ -117,6 +130,47 @@ export default function Dashboard() {
       }
     } else {
       setSelectedStops([...selectedStops, id]);
+    }
+    setActiveScenario("custom");
+  };
+
+  const handleScenarioChange = async (key: string) => {
+    setActiveScenario(key);
+    if (key === "metro_greater") {
+      setSourceId(0);
+      setSelectedStops([1, 2, 6, 7, 11, 14, 15, 18, 19, 21, 22, 23]);
+    } else if (key === "cbd_express") {
+      setSourceId(0);
+      setSelectedStops([1, 3, 4, 9, 10]);
+    } else if (key === "industrial_cargo") {
+      setSourceId(0);
+      setSelectedStops([4, 5, 6, 17, 18, 19, 20, 21]);
+    } else if (key === "north_south") {
+      setSourceId(0);
+      setSelectedStops([2, 7, 8, 9, 10, 14, 15, 22]);
+    } else if (key === "western_suburbs") {
+      setSourceId(0);
+      setSelectedStops([1, 4, 9, 12, 13, 23]);
+    } else if (key === "random") {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/api/instances/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ n_stops: 10, radius_km: 30 }),
+        });
+        const data = await res.json();
+        if (data.stops_ids && data.stops_ids.length > 0) {
+          setSourceId(0);
+          setSelectedStops(data.stops_ids);
+          return;
+        }
+      } catch {
+        // Fallback random generation
+      }
+      const candidateIds = landmarks.map((l) => l.id).filter((id) => id !== 0);
+      const shuffled = [...candidateIds].sort(() => 0.5 - Math.random());
+      setSourceId(0);
+      setSelectedStops(shuffled.slice(0, 10));
     }
   };
 
@@ -363,6 +417,31 @@ export default function Dashboard() {
             <h2 className="text-xs font-bold uppercase tracking-wider text-text-primary">
               Mission Parameters
             </h2>
+          </div>
+
+          {/* Scenario & OSM Radius Preset */}
+          <div className="flex flex-col gap-1.5 bg-bg-base p-2.5 rounded border border-border">
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-text-primary font-semibold">
+                Scenario & Radius
+              </label>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-signal-amber/15 text-signal-amber border border-signal-amber/30">
+                OSM 30km
+              </span>
+            </div>
+            <select
+              value={activeScenario}
+              onChange={(e) => handleScenarioChange(e.target.value)}
+              className="bg-bg-surface border border-border rounded px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
+            >
+              <option value="metro_greater">Greater Coimbatore Metro (12 Stops, 32km — High Diff)</option>
+              <option value="cbd_express">CBD Commercial Express (5 Stops, 8km)</option>
+              <option value="industrial_cargo">Airport & Eastern Cargo (8 Stops, 24km)</option>
+              <option value="north_south">North-South Arterial Spine (8 Stops, 26km)</option>
+              <option value="western_suburbs">Western Suburbs & Tech Valley (6 Stops, 18km)</option>
+              <option value="custom">Custom Stop Selection</option>
+              <option value="random">🎲 Generate Dynamic Random OSM Instance</option>
+            </select>
           </div>
 
           {/* Source Hub */}
