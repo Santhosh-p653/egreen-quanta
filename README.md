@@ -15,7 +15,8 @@ egreen-quanta/
 ├── backend/                  # Python FastAPI service & core optimization engine
 │   ├── api.py                # RESTful & WebSocket streaming API with explainability endpoints
 │   ├── explainability.py     # Deterministic Explainability Layer (zero LLMs / template & JSON)
-│   ├── osm_road_network.py   # Real Coimbatore road network & GPS coordinates
+│   ├── osm_road_network.py   # 24-hub 30km Greater Coimbatore OSM graph & scenarios
+│   ├── graphhopper_client.py # OSM & GraphHopper matrix client & dynamic generator
 │   ├── qpso.py               # Quantum-behaved Particle Swarm Optimization
 │   ├── classical_pso.py      # Classical velocity- & inertia-driven PSO
 │   ├── ga.py                 # Genetic Algorithm (GA-OX and GA-PMX)
@@ -33,9 +34,10 @@ egreen-quanta/
 │   ├── src/components/       # MapComponent, RouteExplanationCard, ConvergenceChart, CompareView
 │   ├── tailwind.config.ts    # Traffic-signal design tokens (Dark/Light)
 │   └── package.json          # Node.js dependencies
-├── tests/                    # Automated verification test suite
+├── tests/                    # Automated verification test suite (16 tests)
 │   ├── test_explainability.py      # Unit tests for explanation generation & constraints
-│   └── test_api_explainability.py  # FastAPI integration tests for /api/optimize & /api/explain
+│   ├── test_api_explainability.py  # FastAPI integration tests for /api/optimize & /api/explain
+│   └── test_graphhopper_osm.py     # 30km OSM graph, scenarios, & GraphHopper tests
 ├── docs/                     # Technical documentation & audit logs
 │   ├── algorithms/           # 11 individual modular algorithm specifications
 │   ├── algorithms.md         # Master algorithm index
@@ -43,6 +45,8 @@ egreen-quanta/
 │   └── CHANGELOG.md          # Engine change and implementation audit log
 ├── Dockerfile                # Root container specification for GHCR deployment
 ├── .github/workflows/        # Automated CI/CD pipelines (GHCR & golden evals)
+├── setup.md                  # Comprehensive setup & deployment guide
+├── LICENSE.md                # MIT Open-Source License
 ├── .gitattributes            # Line-ending normalization (LF)
 └── .gitignore                # Repository exclusions
 ```
@@ -71,17 +75,27 @@ egreen-quanta/
 
 The user interface is designed as an operational control console for SIH reviewers:
 
-* **Real Coimbatore Map Canvas:** Leaflet map rendering authentic GPS coordinates across 12 arterial hubs (Gandhipuram, RS Puram, Ukkadam, Peelamedu, Hope College, Airport, Singanallur, Saravanampatti).
+* **Real Coimbatore Map Canvas:** Leaflet map rendering authentic GPS coordinates across 24 arterial hubs covering a **30+ km metropolitan radius** (Gandhipuram, RS Puram, Ukkadam, Peelamedu, Airport, Sulur, Eachanari SEZ, Thudiyalur, CHIL SEZ, Vadavalli, etc.).
+* **Scenario & Radius Presets:** 1-click selection of curated benchmark instances (Greater Coimbatore Metro, CBD Express, Airport Cargo, North-South Spine, or Dynamic Random OSM generation).
 * **Strict Traffic-Signal Semantics:**
   * **Red (`#E5484D` / `#D92D3F`):** Unoptimized baseline route, congestion, bottlenecks.
-  * **Amber (`#F5A623` / `#E0980C`):** In-progress optimization, depot hubs.
+  * **Amber (`#F5A623` / `#E0980C`):** In-progress optimization, depot hubs, Classical PSO fast execution indicator.
   * **Green (`#2ECC71` / `#189A5B`):** Quantum-optimized route, transit savings.
 * **Persistent 3-Column Layout:** Input parameters (left) and Results KPIs (right) remain persistently visible across all 3 center canvas tabs:
-  1. **Live Simulation:** Interactive map with before/after routes and animated crossfade transitions.
-  2. **Compare Algorithms:** Side-by-side bar chart and multi-line convergence overlay across all 7 algorithms.
+  1. **Live Simulation:** Interactive map with before/after/alternative routes and animated crossfade transitions.
+  2. **Compare Algorithms:** Side-by-side bar chart (with runtime vs. quality Pareto insights) and multi-line convergence overlay across all 7 algorithms.
   3. **Performance Trends:** Full-size convergence chart featuring a flat red baseline reference line, green QPSO curve, and a highlighted badge for the crossover point (*"the moment QPSO beat baseline"*).
 * **Deterministic Explainability Card:** Displays why the optimizer chose the selected route over alternatives, with constraint status, trade-offs, and evaluated candidate comparisons.
 * **Yellow Alternative Route Highlighting (`#F5A623`):** Suggested alternative routes (such as Clarke-Wright Savings) are rendered with distinct yellow/amber styling on the Leaflet map and within the explanation card to provide clear operational contrast against optimal (green) and baseline (red) paths.
+
+---
+
+## OpenStreetMap (OSM) & GraphHopper Integration
+
+The engine connects to real-world geospatial road data through a multi-tier pipeline:
+* **24-Node 30km Greater Coimbatore OSM Network:** Spans across all major arterial highways (NH-544, NH-209, NH-83, NH-81, Mettupalayam Rd, Avinashi Rd, Western Bypass).
+* **GraphHopper Live API & Local Fallback:** Supports querying GraphHopper Matrix API with GPS coordinates, backed by an offline high-fidelity OSM metric closure with urban tortuosity factors.
+* **Dynamic Instance Generator (`POST /api/instances/generate`):** Dynamically samples $N$ delivery stops across custom radii with randomized customer demands. See [`setup.md`](setup.md) for full configuration options.
 
 ---
 
@@ -145,3 +159,12 @@ Tested across real-world instances with vehicle capacity constraints:
 * **QPSO Win Rate vs. Nearest-Neighbor:** **100% (5/5)**
 * **Average Transit Cost:** QPSO (**1519.05**) < Cheapest Insertion (**1533.23**) < Nearest-Neighbor (**1551.65**) < Clarke-Wright (**1562.41**)
 * **QWOA Quantum Amplification:** Amplifies probability of measuring the ground-state route from classical uniform $4.17\%$ to **$15.80\%$ ($3.79\times$ enhancement)**.
+
+---
+
+## Documentation & Further Reading
+
+* [Setup & Deployment Guide](setup.md) — Comprehensive installation, testing, Docker containerization, and scenario details.
+* [Algorithm Specifications & Intuition](docs/) — Mathematical formulas, pseudo-code, and QUBO derivations.
+* [LICENSE](LICENSE.md) — MIT License.
+
