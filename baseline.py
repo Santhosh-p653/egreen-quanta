@@ -38,6 +38,10 @@ def nearest_neighbor_route(G, depot, waypoints):
     return route, total_cost, runtime
 
 
+from clarke_wright import clarke_wright_route
+from cheapest_insertion import cheapest_insertion_route
+
+
 if __name__ == "__main__":
     from graph_model import build_random_graph, apply_congestion
 
@@ -46,5 +50,11 @@ if __name__ == "__main__":
     print(f"Path: {path}\nCost: {cost:.2f} min\nRuntime: {runtime*1000:.3f} ms")
 
     G2 = apply_congestion(build_random_graph(n_nodes=20, seed=1), seed=1)
-    route, cost2, rt2 = nearest_neighbor_route(G2, 0, [3, 7, 11, 14, 18])
-    print(f"\nNN route: {route}\nCost: {cost2:.2f} min\nRuntime: {rt2*1000:.3f} ms")
+    waypoints = [3, 7, 11, 14, 18]
+    nn_r, nn_c, nn_t = nearest_neighbor_route(G2, 0, waypoints)
+    cw_r, cw_c, cw_t = clarke_wright_route(G2, 0, waypoints)
+    ci_r, ci_c, ci_t = cheapest_insertion_route(G2, 0, waypoints)
+
+    print(f"\nNN route:  {nn_r} | Cost: {nn_c:.2f} min | Time: {nn_t*1000:.3f} ms")
+    print(f"CW route:  {cw_r} | Cost: {cw_c:.2f} min | Time: {cw_t*1000:.3f} ms")
+    print(f"CI route:  {ci_r} | Cost: {ci_c:.2f} min | Time: {ci_t*1000:.3f} ms")

@@ -1,4 +1,3 @@
-%%writefile cvrp_qpso.py
 """
 cvrp_qpso.py — Phase 2
 QPSO on the CVRP dataset, routed through the sparse congested graph
@@ -125,6 +124,7 @@ def qpso_optimize_cvrp(
         "n_trips": n_trips,
         "history": history,
         "runtime": runtime,
+        "feasible": True,
     }
 
 

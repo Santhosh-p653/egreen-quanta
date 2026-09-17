@@ -1,4 +1,3 @@
-%%writefile cvrp_graph.py
 """
 cvrp_graph.py
 Builds a sparse "road network" graph over a CVRP instance's node

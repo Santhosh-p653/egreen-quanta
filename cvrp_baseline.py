@@ -1,4 +1,3 @@
-%%writefile cvrp_baseline.py
 """
 cvrp_baseline.py — Phase 2
 Classical Nearest-Neighbor baseline for the CVRP dataset, routed
@@ -60,7 +59,13 @@ def nearest_neighbor_cvrp(instance, k_neighbors=4, seed=None):
         "cost": cost,
         "n_trips": n_trips,
         "runtime": runtime,
+        "feasible": True,
     }
+
+
+# Expose Clarke-Wright and Cheapest Insertion baselines
+from clarke_wright import clarke_wright_cvrp
+from cheapest_insertion import cheapest_insertion_cvrp
 
 
 if __name__ == "__main__":
@@ -68,8 +73,11 @@ if __name__ == "__main__":
 
     data = load_dataset()
     instance = get_instance(data, 0)
-    result = nearest_neighbor_cvrp(instance, seed=1)
-    print(f"NN route: {result['route']}")
-    print(f"Cost: {result['cost']:.2f}")
-    print(f"Depot trips required: {result['n_trips']}")
-    print(f"Runtime: {result['runtime']*1000:.3f} ms")
+
+    nn_res = nearest_neighbor_cvrp(instance, seed=1)
+    cw_res = clarke_wright_cvrp(instance, seed=1)
+    ci_res = cheapest_insertion_cvrp(instance, seed=1)
+
+    print(f"Nearest-Neighbor:    cost={nn_res['cost']:.2f}, trips={nn_res['n_trips']}, time={nn_res['runtime']*1000:.2f}ms")
+    print(f"Clarke-Wright:       cost={cw_res['cost']:.2f}, trips={cw_res['n_trips']}, time={cw_res['runtime']*1000:.2f}ms")
+    print(f"Cheapest Insertion:  cost={ci_res['cost']:.2f}, trips={ci_res['n_trips']}, time={ci_res['runtime']*1000:.2f}ms")
