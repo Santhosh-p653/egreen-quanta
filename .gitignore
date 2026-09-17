@@ -61,15 +61,15 @@ cover/
 # Node.js & Next.js Frontend
 # =========================================================================
 node_modules/
-*/node_modules/
+**/node_modules/
 .pnp
 .pnp.js
 
 # Next.js build output
 .next/
-*/.next/
+**/.next/
 out/
-*/out/
+**/out/
 
 # Production build artifacts
 frontend/build/
