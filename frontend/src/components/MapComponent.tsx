@@ -14,6 +14,8 @@ interface Landmark {
 interface MapComponentProps {
   beforeCoordinates: [number, number][];
   afterCoordinates: [number, number][];
+  alternativeCoordinates?: [number, number][];
+  alternativeName?: string;
   landmarks: Landmark[];
   isOptimizing?: boolean;
 }
@@ -21,6 +23,8 @@ interface MapComponentProps {
 export default function MapComponent({
   beforeCoordinates,
   afterCoordinates,
+  alternativeCoordinates = [],
+  alternativeName = "Suggested Alternative",
   landmarks,
   isOptimizing = false,
 }: MapComponentProps) {
@@ -28,9 +32,10 @@ export default function MapComponent({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const beforePolylineRef = useRef<L.Polyline | null>(null);
   const afterPolylineRef = useRef<L.Polyline | null>(null);
+  const alternativePolylineRef = useRef<L.Polyline | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
-  const [viewMode, setViewMode] = useState<"both" | "before" | "after">("both");
+  const [viewMode, setViewMode] = useState<"all" | "optimal" | "alternative" | "baseline">("all");
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Initialize Map
@@ -65,21 +70,34 @@ export default function MapComponent({
     // Clear old polylines
     if (beforePolylineRef.current) map.removeLayer(beforePolylineRef.current);
     if (afterPolylineRef.current) map.removeLayer(afterPolylineRef.current);
+    if (alternativePolylineRef.current) map.removeLayer(alternativePolylineRef.current);
 
     // 1. Before Route (Red, dashed line)
-    if (beforeCoordinates.length > 1 && (viewMode === "both" || viewMode === "before")) {
+    if (beforeCoordinates.length > 1 && (viewMode === "all" || viewMode === "baseline")) {
       const beforeLine = L.polyline(beforeCoordinates, {
         color: "#E5484D",
         weight: 4,
         dashArray: "8, 8",
-        opacity: viewMode === "both" ? 0.75 : 0.95,
+        opacity: viewMode === "all" ? 0.7 : 0.95,
         lineJoin: "round",
       }).addTo(map);
       beforePolylineRef.current = beforeLine;
     }
 
-    // 2. After Route (Green, solid line)
-    if (afterCoordinates.length > 1 && (viewMode === "both" || viewMode === "after")) {
+    // 2. Alternative Route (Yellow / Amber, dashed-solid line)
+    if (alternativeCoordinates.length > 1 && (viewMode === "all" || viewMode === "alternative")) {
+      const altLine = L.polyline(alternativeCoordinates, {
+        color: "#F5A623", // Vivid Yellow / Amber for suggesting routes other than best
+        weight: 4,
+        dashArray: "4, 6",
+        opacity: viewMode === "all" ? 0.85 : 0.95,
+        lineJoin: "round",
+      }).addTo(map);
+      alternativePolylineRef.current = altLine;
+    }
+
+    // 3. Optimal After Route (Green, solid line)
+    if (afterCoordinates.length > 1 && (viewMode === "all" || viewMode === "optimal")) {
       const afterLine = L.polyline(afterCoordinates, {
         color: "#2ECC71",
         weight: 5,
@@ -119,23 +137,26 @@ export default function MapComponent({
     }
 
     // Auto-fit bounds
-    const allCoords = [...beforeCoordinates, ...afterCoordinates];
+    const allCoords = [...beforeCoordinates, ...afterCoordinates, ...alternativeCoordinates];
     if (allCoords.length > 1) {
       const bounds = L.latLngBounds(allCoords);
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
     }
-  }, [beforeCoordinates, afterCoordinates, landmarks, viewMode]);
+  }, [beforeCoordinates, afterCoordinates, alternativeCoordinates, landmarks, viewMode]);
 
   // Handle Morph / Transition Animation
   const handleTransition = () => {
     setIsTransitioning(true);
-    setViewMode("before");
+    setViewMode("baseline");
     setTimeout(() => {
-      setViewMode("after");
+      setViewMode("alternative");
       setTimeout(() => {
-        setViewMode("both");
-        setIsTransitioning(false);
-      }, 1600);
+        setViewMode("optimal");
+        setTimeout(() => {
+          setViewMode("all");
+          setIsTransitioning(false);
+        }, 1200);
+      }, 1200);
     }, 1200);
   };
 
@@ -143,41 +164,51 @@ export default function MapComponent({
     <div className="relative w-full h-full min-h-[480px] rounded-md border border-border overflow-hidden bg-bg-surface flex flex-col">
       {/* Top Map Control Bar */}
       <div className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 bg-bg-surface/90 backdrop-blur-md px-2 py-1.5 rounded border border-border text-xs">
-        <span className="text-text-secondary pr-1 font-medium">Route View:</span>
+        <span className="text-text-secondary pr-1 font-medium">Route:</span>
         <button
-          onClick={() => setViewMode("both")}
+          onClick={() => setViewMode("all")}
           className={`px-2 py-1 rounded transition-colors ${
-            viewMode === "both"
+            viewMode === "all"
               ? "bg-text-primary text-bg-surface font-semibold"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          Compare Both
+          All
         </button>
         <button
-          onClick={() => setViewMode("before")}
+          onClick={() => setViewMode("optimal")}
           className={`px-2 py-1 rounded transition-colors ${
-            viewMode === "before"
-              ? "bg-signal-red text-white font-semibold"
-              : "text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          Before Only
-        </button>
-        <button
-          onClick={() => setViewMode("after")}
-          className={`px-2 py-1 rounded transition-colors ${
-            viewMode === "after"
+            viewMode === "optimal"
               ? "bg-signal-green text-bg-base font-semibold"
               : "text-text-secondary hover:text-text-primary"
           }`}
         >
-          After Only
+          Optimal (Green)
+        </button>
+        <button
+          onClick={() => setViewMode("alternative")}
+          className={`px-2 py-1 rounded transition-colors ${
+            viewMode === "alternative"
+              ? "bg-[#F5A623] text-bg-base font-semibold"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          Alternative (Yellow)
+        </button>
+        <button
+          onClick={() => setViewMode("baseline")}
+          className={`px-2 py-1 rounded transition-colors ${
+            viewMode === "baseline"
+              ? "bg-signal-red text-white font-semibold"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          Baseline (Red)
         </button>
         <button
           onClick={handleTransition}
           disabled={isTransitioning}
-          className="ml-1 px-2.5 py-1 rounded bg-bg-base border border-border text-text-primary hover:border-signal-amber transition-colors disabled:opacity-50"
+          className="ml-1 px-2 py-1 rounded bg-bg-base border border-border text-text-primary hover:border-signal-amber transition-colors disabled:opacity-50"
         >
           {isTransitioning ? "Transitioning..." : "Play Transition"}
         </button>
@@ -186,12 +217,16 @@ export default function MapComponent({
       {/* Map Legend Overlay */}
       <div className="absolute bottom-4 left-4 z-[1000] bg-bg-surface/90 backdrop-blur-md px-3 py-2 rounded border border-border text-xs flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
-          <span className="w-4 h-0.5 border-b-2 border-dashed border-signal-red"></span>
-          <span className="text-text-primary font-medium">Before Route (Unoptimized Baseline)</span>
+          <span className="w-4 h-1 bg-signal-green rounded"></span>
+          <span className="text-text-primary font-medium">Selected Best Route (Optimal)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-4 h-1 bg-signal-green rounded"></span>
-          <span className="text-text-primary font-medium">After Route (QPSO Optimized)</span>
+          <span className="w-4 h-1 bg-[#F5A623] rounded"></span>
+          <span className="text-text-primary font-medium">{alternativeName} (Yellow Alternative)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-4 h-0.5 border-b-2 border-dashed border-signal-red"></span>
+          <span className="text-text-secondary">Unoptimized Baseline Route</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-signal-amber"></span>

@@ -14,7 +14,6 @@ RUN pip install --no-cache-dir -r ./backend/requirements.txt
 
 # Copy backend codebase, datasets, and configuration
 COPY backend/ ./backend/
-COPY data/ ./data/
 
 # Expose API port (8000) and Gradio fallback port (7860)
 EXPOSE 8000 7860

@@ -13,10 +13,19 @@ Dataset shape (per the uploaded file):
   map_size           (2,)        int64    e.g. [1000, 1000]
 """
 
+import os
 import numpy as np
 
 
-def load_dataset(path="data/cvrp_10.npz"):
+def load_dataset(path=None):
+    if path is None:
+        local_path = os.path.join(os.path.dirname(__file__), "data", "cvrp_10.npz")
+        if os.path.exists(local_path):
+            path = local_path
+        elif os.path.exists("backend/data/cvrp_10.npz"):
+            path = "backend/data/cvrp_10.npz"
+        else:
+            path = "data/cvrp_10.npz"
     return np.load(path, allow_pickle=True)
 
 

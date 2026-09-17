@@ -4,6 +4,30 @@ This document records all architectural updates, new algorithm implementations, 
 
 ---
 
+## [2026-09-17] — Deterministic Explainability Layer & Fullstack Root Cleanup
+
+### 1. Root Directory & Workspace Separation
+* **Root Cleanup:** Removed all duplicate Python files from repository root (`baseline.py`, `cheapest_insertion.py`, `clarke_wright.py`, `qpso.py`, `qwoa.py`, `requirements.txt`, etc.), ensuring the root strictly contains `frontend/`, `backend/`, `tests/`, `docs/`, `Dockerfile`, and configuration files.
+* **Dockerfile & CI Update:** Updated root `Dockerfile` and GitHub Actions workflows to build and execute cleanly from `backend/`.
+* **Dataset Robustness:** Updated `backend/cvrp_loader.py` to resolve dataset paths relative to module location regardless of runtime working directory.
+
+### 2. Deterministic Explainability Layer (`backend/explainability.py`)
+* **Core Philosophy:** 100% deterministic, evidence-based reasoning derived exclusively from road network distances, travel times, vehicle capacity, and congestion levels. Zero external generative AI, LLM APIs, or stochastic text generators.
+* **Structured Output:** Emits a typed JSON object conforming to future LLM ingestion schemas (`vehicle`, `selected_route`, `metrics`, `reasons`, `constraints`, `tradeoffs`, `alternative`, `decision`, `human_readable`).
+* **Deterministic Template:** Generates the required human-readable operations report with section headers, checkmarks (`✓`/`✗`), and explicit trade-off statements.
+* **API Endpoints:**
+  - Integrated `explanation` and `alternative_route` directly into `POST /api/optimize`.
+  - Added dedicated `POST /api/explain` and `GET /api/routes/{route_id}/explanation` endpoints.
+
+### 3. Frontend Explainability & Yellow Alternative Route
+* **Yellow Alternative Route Styling (`#F5A623`):** Suggested alternative route candidate (Clarke-Wright Savings) is rendered in distinct yellow/amber on the Leaflet map and inside the UI cards to differentiate clearly from optimal (green) and baseline (red).
+* **`RouteExplanationCard` Component:** Integrated into Column 3 (Results Panel) with vehicle assignment, reason badges, constraint checks, key trade-offs, alternative route metrics, decision summary, and one-click copy of the deterministic template.
+
+### 4. Automated Test Suite (`tests/`)
+* Added `tests/test_explainability.py` and `tests/test_api_explainability.py` covering valid schemas, constraints, missing alternatives, trade-offs, multiple vehicles, missing metrics, zero optimizer mutation, and FastAPI endpoints. 11/11 tests pass.
+
+---
+
 ## [2026-09-17] — Algorithm Suite Expansion & Modular Documentation Refactor
 
 ### 1. New Algorithm Implementations

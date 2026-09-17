@@ -10,11 +10,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "golden_eval.py"
-      - "sampling.py"
-      - "qpso.py"
-      - "baseline.py"
-      - "graph_model.py"
+      - "backend/**"
       - ".github/workflows/golden-evals.yml"
   pull_request:
     branches: [main]
@@ -33,12 +29,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
           pip install pandas openpyxl scipy
 
       - name: Run golden evaluation
         run: |
-          python golden_eval.py \
+          PYTHONPATH=backend python backend/golden_eval.py \
             --lhs-samples 8 \
             --sobol-samples 8 \
             --output golden_eval_results.xlsx

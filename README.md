@@ -13,7 +13,8 @@ The project is organized as a clean, decoupled fullstack system:
 ```
 egreen-quanta/
 ├── backend/                  # Python FastAPI service & core optimization engine
-│   ├── api.py                # RESTful & WebSocket streaming API
+│   ├── api.py                # RESTful & WebSocket streaming API with explainability endpoints
+│   ├── explainability.py     # Deterministic Explainability Layer (zero LLMs / template & JSON)
 │   ├── osm_road_network.py   # Real Coimbatore road network & GPS coordinates
 │   ├── qpso.py               # Quantum-behaved Particle Swarm Optimization
 │   ├── classical_pso.py      # Classical velocity- & inertia-driven PSO
@@ -29,9 +30,12 @@ egreen-quanta/
 │   └── data/                 # CVRP benchmark dataset (.npz)
 ├── frontend/                 # Next.js 14 App Router operational dashboard
 │   ├── src/app/              # Page routes, layout, and global styles
-│   ├── src/components/       # MapComponent, ConvergenceChart, CompareView
+│   ├── src/components/       # MapComponent, RouteExplanationCard, ConvergenceChart, CompareView
 │   ├── tailwind.config.ts    # Traffic-signal design tokens (Dark/Light)
 │   └── package.json          # Node.js dependencies
+├── tests/                    # Automated verification test suite
+│   ├── test_explainability.py      # Unit tests for explanation generation & constraints
+│   └── test_api_explainability.py  # FastAPI integration tests for /api/optimize & /api/explain
 ├── docs/                     # Technical documentation & audit logs
 │   ├── algorithms/           # 11 individual modular algorithm specifications
 │   ├── algorithms.md         # Master algorithm index
@@ -39,6 +43,7 @@ egreen-quanta/
 │   └── CHANGELOG.md          # Engine change and implementation audit log
 ├── Dockerfile                # Root container specification for GHCR deployment
 ├── .github/workflows/        # Automated CI/CD pipelines (GHCR & golden evals)
+├── .gitattributes            # Line-ending normalization (LF)
 └── .gitignore                # Repository exclusions
 ```
 
@@ -75,6 +80,29 @@ The user interface is designed as an operational control console for SIH reviewe
   1. **Live Simulation:** Interactive map with before/after routes and animated crossfade transitions.
   2. **Compare Algorithms:** Side-by-side bar chart and multi-line convergence overlay across all 7 algorithms.
   3. **Performance Trends:** Full-size convergence chart featuring a flat red baseline reference line, green QPSO curve, and a highlighted badge for the crossover point (*"the moment QPSO beat baseline"*).
+* **Deterministic Explainability Card:** Displays why the optimizer chose the selected route over alternatives, with constraint status, trade-offs, and evaluated candidate comparisons.
+* **Yellow Alternative Route Highlighting (`#F5A623`):** Suggested alternative routes (such as Clarke-Wright Savings) are rendered with distinct yellow/amber styling on the Leaflet map and within the explanation card to provide clear operational contrast against optimal (green) and baseline (red) paths.
+
+---
+
+## Explainability Layer (Deterministic & Future LLM Ready)
+
+The explainability layer translates raw optimizer evidence into both typed JSON and a fixed human-readable operational template **without any LLMs or non-deterministic generators**:
+
+```
+Optimizer Evidence (Road Network Distances, Travel Times, Demands, Graph Congestion)
+    ↓
+Structured Explanation Object (Typed Metrics, Reasons, Constraints, Trade-Offs, Alternative Comparison)
+    ↓
+Deterministic Human-Readable Template & Frontend Card (Instant SIH Review)
+    ↓
+[Future Extension] Downstream LLM Consumption (Zero Optimizer Changes Needed)
+```
+
+### Explanation Capabilities
+* **Factual Decision Drivers:** Evaluates underlying optimizer metrics (`lower_travel_time`, `lower_total_distance`, `capacity_satisfied`, `all_locations_covered`, `time_constraint_satisfied`).
+* **Explicit Trade-Offs:** Quantifies mileage vs. travel-time trade-offs when routes take detours to bypass high-congestion corridors.
+* **Alternative Route Benchmarking:** Evaluates and highlights the alternative route candidate in **Yellow (`#F5A623`)** alongside the optimal path.
 
 ---
 
@@ -101,6 +129,12 @@ Build and run the containerized backend directly from the repository root:
 ```bash
 docker build -t egreen-quanta .
 docker run -p 8000:8000 egreen-quanta
+```
+
+### 4. Run Automated Test Suite
+Run the full verification suite covering the explainability layer, constraints, and FastAPI integration:
+```bash
+python -m unittest discover tests
 ```
 
 ---
