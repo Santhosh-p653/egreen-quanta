@@ -120,3 +120,11 @@ golden_eval_results.xlsx
 *.db
 *.sqlite
 *.sqlite3
+
+# =========================================================================
+# Changelog
+# =========================================================================
+changelog.md
+CHANGELOG.md
+docs/CHANGELOG.md
+docs/changelog.md

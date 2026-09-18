@@ -588,9 +588,15 @@ def compare_all_algorithms(req: OptimizeRequest):
     algos = ["qpso", "classical_pso", "ga_ox", "ga_pmx", "clarke_wright", "cheapest_insertion", "nearest_neighbor"]
     results = []
 
+    end_node = (
+        req.destination_id
+        if (req.destination_id and req.destination_id in COIMBATORE_LANDMARKS)
+        else req.source_id
+    )
+
     for a in algos:
         out = _run_solver(a, G, req.source_id, waypoints, req.swarm_size, req.iterations, req.seed)
-        route_nodes = out["route"] + [req.source_id]
+        route_nodes = out["route"] + [end_node]
         geom = get_route_geometry(G, route_nodes)
         history = [round(float(c), 2) for c in out.get("history", [geom["total_time_min"]])]
 
@@ -612,11 +618,15 @@ def compare_all_algorithms(req: OptimizeRequest):
             "is_best": False,
         })
 
-    # Mark the winner
-    min_time = min(r["travel_time_min"] for r in results)
-    for r in results:
-        if r["travel_time_min"] == min_time:
-            r["is_best"] = True
+    # Sort results by travel_time_min ascending (best solution first)
+    results.sort(key=lambda r: r["travel_time_min"])
+
+    # Strictly mark the true minimum cost winner
+    if results:
+        min_time = results[0]["travel_time_min"]
+        for r in results:
+            if abs(r["travel_time_min"] - min_time) < 1e-4:
+                r["is_best"] = True
 
     return {"results": results}
 

@@ -92,6 +92,9 @@ export default function Dashboard() {
   // Navigation View State: "simulation" | "dashboard" | "admin"
   const [activePage, setActivePage] = useState<"simulation" | "dashboard" | "admin">("simulation");
 
+  // Tab Density / Size State: "compact" | "comfortable" | "large"
+  const [tabSize, setTabSize] = useState<"compact" | "comfortable" | "large">("comfortable");
+
   // Leg Itinerary Overlay Drawer State (in Live Simulation)
   const [showItineraryDrawer, setShowItineraryDrawer] = useState(false);
 
@@ -165,9 +168,24 @@ export default function Dashboard() {
       }
     } catch {}
 
+    // Check stored tab density preference
+    try {
+      const savedTab = localStorage.getItem("egreen_tab_size");
+      if (savedTab === "compact" || savedTab === "comfortable" || savedTab === "large") {
+        setTabSize(savedTab);
+      }
+    } catch {}
+
     // Initialize baseline calculation
     runOptimization();
   }, []);
+
+  const handleTabSizeChange = (size: "compact" | "comfortable" | "large") => {
+    setTabSize(size);
+    try {
+      localStorage.setItem("egreen_tab_size", size);
+    } catch {}
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("egreen_token");
@@ -231,7 +249,9 @@ export default function Dashboard() {
   };
 
   // Run Optimization Call
-  const runOptimization = async () => {
+  const runOptimization = async (overrideSource?: number, overrideDest?: number | null) => {
+    const activeSrc = overrideSource !== undefined ? overrideSource : sourceId;
+    const activeDest = overrideDest !== undefined ? overrideDest : destinationId;
     setIsOptimizing(true);
     setOptimizationStatus("running");
 
@@ -240,9 +260,9 @@ export default function Dashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          source_id: sourceId,
-          destination_id: destinationId,
-          intermediate_stops: selectedStops,
+          source_id: activeSrc,
+          destination_id: activeDest,
+          intermediate_stops: selectedStops.filter((s) => s !== activeSrc && s !== activeDest),
           traffic_mode: trafficMode,
           algorithm: algorithm,
           iterations: iterations,
@@ -307,21 +327,25 @@ export default function Dashboard() {
 
       setOptimizationStatus("converged");
     } catch {
-      simulateLocalRun();
+      simulateLocalRun(activeSrc, activeDest);
     } finally {
       setIsOptimizing(false);
     }
   };
 
-  const simulateLocalRun = () => {
-    const stops = [sourceId, ...selectedStops, sourceId];
+  const simulateLocalRun = (overrideSource?: number, overrideDest?: number | null) => {
+    const activeSrc = overrideSource !== undefined ? overrideSource : sourceId;
+    const activeDest = overrideDest !== undefined ? overrideDest : destinationId;
+    const endId = activeDest !== null ? activeDest : activeSrc;
+    const validStops = selectedStops.filter((s) => s !== activeSrc && s !== endId);
+    const stops = [activeSrc, ...validStops, endId];
     const coords: [number, number][] = stops.map((id) => {
       const lm = landmarks.find((l) => l.id === id) || landmarks[0];
       return [lm.lat, lm.lon];
     });
 
     setBeforeCoords(coords);
-    const reversedCoords = [...coords].reverse();
+    const reversedCoords = [coords[0], ...coords.slice(1, -1).reverse(), coords[coords.length - 1]];
     setAfterCoords(reversedCoords);
 
     const altCoords = [...coords];
@@ -493,14 +517,20 @@ export default function Dashboard() {
           <nav className="p-3 flex flex-col gap-1.5">
             <button
               onClick={() => setActivePage("simulation")}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center justify-between rounded-xl font-semibold transition-all ${
+                tabSize === "compact"
+                  ? "px-3 py-2 text-xs"
+                  : tabSize === "large"
+                  ? "px-4 py-3.5 text-base font-bold"
+                  : "px-3.5 py-3 text-sm"
+              } ${
                 activePage === "simulation"
                   ? "bg-signal-green text-[#0B0F14] shadow-md shadow-signal-green/20"
                   : "text-text-secondary hover:text-text-primary hover:bg-bg-base"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Navigation size={18} />
+                <Navigation size={tabSize === "large" ? 20 : tabSize === "compact" ? 15 : 18} />
                 <span>Live Simulation</span>
               </div>
               {activePage === "simulation" && <ChevronRight size={16} />}
@@ -511,14 +541,20 @@ export default function Dashboard() {
                 setActivePage("dashboard");
                 if (compareResults.length === 0) runComparison();
               }}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center justify-between rounded-xl font-semibold transition-all ${
+                tabSize === "compact"
+                  ? "px-3 py-2 text-xs"
+                  : tabSize === "large"
+                  ? "px-4 py-3.5 text-base font-bold"
+                  : "px-3.5 py-3 text-sm"
+              } ${
                 activePage === "dashboard"
                   ? "bg-signal-green text-[#0B0F14] shadow-md shadow-signal-green/20"
                   : "text-text-secondary hover:text-text-primary hover:bg-bg-base"
               }`}
             >
               <div className="flex items-center gap-3">
-                <BarChart3 size={18} />
+                <BarChart3 size={tabSize === "large" ? 20 : tabSize === "compact" ? 15 : 18} />
                 <span>Analytics Dashboard</span>
               </div>
               {activePage === "dashboard" && <ChevronRight size={16} />}
@@ -526,14 +562,20 @@ export default function Dashboard() {
 
             <button
               onClick={() => setActivePage("admin")}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all ${
+              className={`w-full flex items-center justify-between rounded-xl font-semibold transition-all ${
+                tabSize === "compact"
+                  ? "px-3 py-2 text-xs"
+                  : tabSize === "large"
+                  ? "px-4 py-3.5 text-base font-bold"
+                  : "px-3.5 py-3 text-sm"
+              } ${
                 activePage === "admin"
                   ? "bg-signal-green text-[#0B0F14] shadow-md shadow-signal-green/20"
                   : "text-text-secondary hover:text-text-primary hover:bg-bg-base"
               }`}
             >
               <div className="flex items-center gap-3">
-                <Shield size={18} />
+                <Shield size={tabSize === "large" ? 20 : tabSize === "compact" ? 15 : 18} />
                 <span>Admin Console</span>
               </div>
               {activePage === "admin" && <ChevronRight size={16} />}
@@ -632,7 +674,11 @@ export default function Dashboard() {
                 </label>
                 <select
                   value={sourceId}
-                  onChange={(e) => setSourceId(Number(e.target.value))}
+                  onChange={(e) => {
+                    const newSrc = Number(e.target.value);
+                    setSourceId(newSrc);
+                    runOptimization(newSrc, destinationId);
+                  }}
                   className="bg-bg-base border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
                 >
                   {landmarks.map((lm) => (
@@ -648,7 +694,11 @@ export default function Dashboard() {
                 <label className="text-sm font-semibold text-text-primary">Final Destination</label>
                 <select
                   value={destinationId === null ? "" : destinationId}
-                  onChange={(e) => setDestinationId(e.target.value === "" ? null : Number(e.target.value))}
+                  onChange={(e) => {
+                    const newDest = e.target.value === "" ? null : Number(e.target.value);
+                    setDestinationId(newDest);
+                    runOptimization(sourceId, newDest);
+                  }}
                   className="bg-bg-base border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
                 >
                   <option value="">Round-trip back to Depot</option>
@@ -799,7 +849,7 @@ export default function Dashboard() {
 
               {/* Action Button */}
               <button
-                onClick={runOptimization}
+                onClick={() => runOptimization()}
                 disabled={isOptimizing}
                 className="w-full py-3 rounded-lg font-bold text-sm transition-all mt-auto flex items-center justify-center gap-2 border disabled:opacity-50 shadow-md"
                 style={{
@@ -859,6 +909,8 @@ export default function Dashboard() {
                   alternativeCoordinates={alternativeCoords}
                   alternativeName={alternativeName}
                   landmarks={landmarks}
+                  depotId={sourceId}
+                  destinationId={destinationId}
                   isOptimizing={isOptimizing}
                 />
               </div>
@@ -924,6 +976,8 @@ export default function Dashboard() {
               convergenceHistory={convergenceHistory}
               baselineCost={baselineCost}
               crossoverIteration={crossoverIteration}
+              tabSize={tabSize}
+              onTabSizeChange={handleTabSizeChange}
             />
           </div>
         )}

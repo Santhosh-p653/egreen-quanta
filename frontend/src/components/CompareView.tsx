@@ -17,15 +17,25 @@ interface CompareViewProps {
   results: AlgorithmResult[];
   isLoading?: boolean;
   onRefresh?: () => void;
+  tabSize?: "compact" | "comfortable" | "large";
 }
 
 export default function CompareView({
   results,
   isLoading = false,
   onRefresh,
+  tabSize = "comfortable",
 }: CompareViewProps) {
-  const [selectedMetric, setSelectedMetric] = useState<"time" | "distance" | "runtime" | "carbon">("time");
+  const [selectedMetric, setSelectedMetric] = useState<"time" | "distance" | "runtime">("time");
   const [activeGraphTab, setActiveGraphTab] = useState<"bars" | "convergence" | "carbon" | "pareto" | "scorecard">("bars");
+
+  // Tab size styling maps
+  const tabButtonPadding =
+    tabSize === "compact"
+      ? "px-3 py-1.5 text-xs"
+      : tabSize === "large"
+      ? "px-5 py-3 text-base font-bold"
+      : "px-4 py-2 text-sm font-semibold";
 
   if (!results || results.length === 0) {
     return (
@@ -33,7 +43,7 @@ export default function CompareView({
         <Activity size={36} className="text-signal-amber mb-3 animate-pulse" />
         <h3 className="text-base font-bold text-text-primary">No Comparison Benchmarks Loaded</h3>
         <p className="text-sm text-text-secondary mt-1 max-w-md">
-          Execute an algorithmic comparison run to benchmark Quantum-behaved PSO against Classical PSO, Genetic Algorithms, and Classical Heuristics.
+          Execute an algorithmic comparison run to benchmark all algorithms truthfully on the Coimbatore road network.
         </p>
         <button
           onClick={onRefresh}
@@ -56,7 +66,11 @@ export default function CompareView({
     );
   }
 
-  // Baseline metrics for reference (Nearest Neighbor or max value)
+  // TRUTHFUL WINNER EVALUATION: Calculate actual minimum travel time
+  const minTravelTime = Math.min(...results.map((r) => r.travel_time_min));
+  const bestAlgorithm = results.find((r) => Math.abs(r.travel_time_min - minTravelTime) < 1e-3) || results[0];
+
+  // Baseline metrics for reference (Nearest Neighbor or worst value)
   const baselineResult = results.find((r) => r.id === "nearest_neighbor") || results[results.length - 1];
   const baselineTime = baselineResult?.travel_time_min || 60;
   const baselineDist = baselineResult?.distance_km || 30;
@@ -92,20 +106,21 @@ export default function CompareView({
     nearest_neighbor: "#E5484D", // signal-red
   };
 
-  // Compute estimated carbon emissions: approx 0.21 kg CO2/km for standard commercial delivery vehicle
+  // Compute estimated carbon emissions: ~0.21 kg CO2/km with congestion idling factor
   const getCarbonEmission = (distKm: number, timeMin: number) => {
     const baseKg = distKm * 0.21;
-    // Congestion penalty: slower speeds indicate idling and stop-and-go acceleration
     const avgSpeedKmh = timeMin > 0 ? (distKm / (timeMin / 60)) : 30;
     const congestionFactor = avgSpeedKmh < 25 ? 1.25 : 1.0;
     return baseKg * congestionFactor;
   };
 
   const maxCarbon = Math.max(...results.map((r) => getCarbonEmission(r.distance_km, r.travel_time_min)));
+  const bestCarbon = getCarbonEmission(bestAlgorithm.distance_km, bestAlgorithm.travel_time_min);
+  const carbonSavingsPct = maxCarbon > 0 ? ((maxCarbon - bestCarbon) / maxCarbon) * 100 : 0;
 
   return (
     <div className="w-full flex flex-col gap-6">
-      {/* Top Header & Graph Category Selector */}
+      {/* Top Header & Refresh */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-bg-surface border border-border rounded-xl p-5 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
@@ -115,7 +130,7 @@ export default function CompareView({
             </h3>
           </div>
           <p className="text-sm text-text-secondary mt-1">
-            Evaluating solution optimality, convergence velocity, carbon emissions, and Pareto trade-offs across 7 metaheuristic and classical routing algorithms on the 70+ km regional network.
+            Real ground-truth benchmarking across all 7 solvers on the 70+ km regional network. True best performer is dynamically identified without bias.
           </p>
         </div>
 
@@ -133,11 +148,11 @@ export default function CompareView({
         </button>
       </div>
 
-      {/* Graph Navigation Sub-Tabs */}
+      {/* Graph Navigation Sub-Tabs with customizable density */}
       <div className="flex flex-wrap items-center gap-2 bg-bg-surface border border-border p-1.5 rounded-xl text-sm">
         <button
           onClick={() => setActiveGraphTab("bars")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabButtonPadding} ${
             activeGraphTab === "bars"
               ? "bg-bg-base text-text-primary font-bold shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -149,7 +164,7 @@ export default function CompareView({
 
         <button
           onClick={() => setActiveGraphTab("convergence")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabButtonPadding} ${
             activeGraphTab === "convergence"
               ? "bg-bg-base text-text-primary font-bold shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -161,7 +176,7 @@ export default function CompareView({
 
         <button
           onClick={() => setActiveGraphTab("carbon")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabButtonPadding} ${
             activeGraphTab === "carbon"
               ? "bg-bg-base text-text-primary font-bold shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -173,7 +188,7 @@ export default function CompareView({
 
         <button
           onClick={() => setActiveGraphTab("pareto")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabButtonPadding} ${
             activeGraphTab === "pareto"
               ? "bg-bg-base text-text-primary font-bold shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -185,7 +200,7 @@ export default function CompareView({
 
         <button
           onClick={() => setActiveGraphTab("scorecard")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabButtonPadding} ${
             activeGraphTab === "scorecard"
               ? "bg-bg-base text-text-primary font-bold shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -207,7 +222,6 @@ export default function CompareView({
                 {selectedMetric === "time" && "Route Travel Time (Minutes — Lower is Better)"}
                 {selectedMetric === "distance" && "Total Road Distance (Kilometers — Lower is Better)"}
                 {selectedMetric === "runtime" && "Engine Execution Latency (Milliseconds)"}
-                {selectedMetric === "carbon" && "Estimated Carbon Footprint (kg CO2 Emitted)"}
               </h4>
               <p className="text-sm text-text-secondary mt-0.5">
                 Normalized benchmark comparison across all 7 routing solvers.
@@ -268,7 +282,8 @@ export default function CompareView({
 
               const pct = max > 0 ? (val / max) * 100 : 0;
               const algColor = colors[r.id] || "#3B82F6";
-              const isBest = r.is_best || r.id === "qpso";
+              // True winner evaluation:
+              const isBest = Math.abs(r.travel_time_min - minTravelTime) < 1e-3;
 
               return (
                 <div key={r.id} className="flex items-center gap-4 text-sm">
@@ -303,14 +318,14 @@ export default function CompareView({
             })}
           </div>
 
-          {/* Trade-Off Callout Box */}
+          {/* Observation Callout Box */}
           <div className="mt-2 p-4 rounded-xl bg-bg-base border border-border text-sm text-text-secondary flex flex-col gap-1.5">
             <div className="flex items-center gap-2 text-text-primary font-bold">
               <span className="w-2.5 h-2.5 rounded-full bg-signal-green"></span>
-              <span>Key Observation: Quantum Tunneling vs Heuristic Greediness</span>
+              <span>Ground Truth Performance: {bestAlgorithm.name} Leading</span>
             </div>
             <p className="leading-relaxed">
-              While classical heuristics like <strong className="text-text-primary">Nearest Neighbor</strong> and <strong className="text-text-primary">Clarke-Wright</strong> execute near-instantaneously (~2 ms), they yield suboptimal routes that cost up to <strong className="text-signal-red">+28% in transit time</strong> and excess fuel burn. <strong className="text-signal-green">QPSO</strong> achieves the global optimum by maintaining a quantum wave function that explores non-local permutation landscapes without getting trapped in local minima.
+              In this scenario, <strong className="text-signal-green">{bestAlgorithm.name}</strong> achieved the optimal route with a transit time of <strong className="text-text-primary font-mono">{bestAlgorithm.travel_time_min.toFixed(1)} min</strong> and distance of <strong className="text-text-primary font-mono">{bestAlgorithm.distance_km.toFixed(1)} km</strong>. Classical heuristics (Nearest Neighbor, Clarke-Wright) execute with sub-millisecond latencies but frequently produce sub-optimal tours requiring excess driving time.
             </p>
           </div>
         </div>
@@ -327,7 +342,7 @@ export default function CompareView({
                 Multi-Line Convergence Trajectory (Cost Curve vs Iterations)
               </h4>
               <p className="text-sm text-text-secondary mt-0.5">
-                Displays the objective cost minimization descent over successive solver iterations.
+                Displays objective cost minimization descent over successive solver iterations.
               </p>
             </div>
             <span className="text-xs font-mono px-2.5 py-1 rounded bg-bg-base border border-border text-text-secondary">
@@ -376,6 +391,7 @@ export default function CompareView({
                   return `${x},${y}`;
                 });
                 const d = `M ${pts.join(" L ")}`;
+                const isWinner = Math.abs(r.travel_time_min - minTravelTime) < 1e-3;
 
                 return (
                   <path
@@ -383,8 +399,8 @@ export default function CompareView({
                     d={d}
                     fill="none"
                     stroke={colors[r.id] || "#8A93A0"}
-                    strokeWidth={r.id === "qpso" ? 3.5 : 2}
-                    strokeOpacity={r.id === "qpso" ? 1 : 0.75}
+                    strokeWidth={isWinner ? 3.5 : 2}
+                    strokeOpacity={isWinner ? 1.0 : 0.65}
                     className="transition-all duration-300 hover:stroke-width-4"
                   />
                 );
@@ -394,15 +410,20 @@ export default function CompareView({
 
           {/* Color Legend */}
           <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-border text-sm">
-            {results.map((r) => (
-              <div key={r.id} className="flex items-center gap-2">
-                <span
-                  className="w-3.5 h-1.5 rounded-full inline-block"
-                  style={{ backgroundColor: colors[r.id] || "#8A93A0" }}
-                />
-                <span className="text-text-primary font-medium">{r.name}</span>
-              </div>
-            ))}
+            {results.map((r) => {
+              const isWinner = Math.abs(r.travel_time_min - minTravelTime) < 1e-3;
+              return (
+                <div key={r.id} className="flex items-center gap-2">
+                  <span
+                    className="w-3.5 h-1.5 rounded-full inline-block"
+                    style={{ backgroundColor: colors[r.id] || "#8A93A0" }}
+                  />
+                  <span className={`font-medium ${isWinner ? "text-signal-green font-bold" : "text-text-primary"}`}>
+                    {r.name} {isWinner ? "(Optimal)" : ""}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -418,7 +439,7 @@ export default function CompareView({
               <span>Carbon Emissions & Environmental Footprint (kg CO2)</span>
             </h4>
             <p className="text-sm text-text-secondary mt-0.5">
-              Calculated using standard freight emissions models factoring total kilometers and congestion idling penalties.
+              Calculated using freight emissions models factoring total distance and congestion idling factors.
             </p>
           </div>
 
@@ -427,7 +448,7 @@ export default function CompareView({
               const kgCO2 = getCarbonEmission(r.distance_km, r.travel_time_min);
               const pct = maxCarbon > 0 ? (kgCO2 / maxCarbon) * 100 : 0;
               const algColor = colors[r.id] || "#3B82F6";
-              const isBest = r.id === "qpso";
+              const isBest = Math.abs(r.travel_time_min - minTravelTime) < 1e-3;
 
               return (
                 <div key={r.id} className="flex items-center gap-4 text-sm">
@@ -457,13 +478,13 @@ export default function CompareView({
             })}
           </div>
 
-          {/* Eco Summary Pill */}
+          {/* Eco Summary Pill - Dynamic True Best */}
           <div className="p-4 rounded-xl bg-signal-green/10 border border-signal-green/30 text-sm flex items-center justify-between text-text-primary">
             <span className="font-semibold">
-              QPSO achieves the lowest carbon footprint of all evaluated algorithms.
+              <strong className="text-signal-green font-bold">{bestAlgorithm.name}</strong> achieved the lowest carbon footprint among all evaluated solvers.
             </span>
             <span className="font-mono font-bold text-signal-green">
-              -{(100 - (getCarbonEmission(results[0]?.distance_km || 22, results[0]?.travel_time_min || 44) / maxCarbon) * 100).toFixed(1)}% CO2 Savings
+              -{carbonSavingsPct.toFixed(1)}% CO2 Savings
             </span>
           </div>
         </div>
@@ -480,7 +501,7 @@ export default function CompareView({
               <span>Algorithmic Pareto Frontier (Runtime vs Time Savings)</span>
             </h4>
             <p className="text-sm text-text-secondary mt-0.5">
-              X-Axis: Execution Runtime (Logarithmic ms) vs Y-Axis: Transit Time Saved vs Baseline (Minutes).
+              Computation Latency (ms) vs Transit Time Saved vs Baseline (Minutes).
             </p>
           </div>
 
@@ -488,11 +509,14 @@ export default function CompareView({
             {results.map((r) => {
               const timeSaved = Math.max(0, baselineTime - r.travel_time_min);
               const algColor = colors[r.id] || "#3B82F6";
+              const isBest = Math.abs(r.travel_time_min - minTravelTime) < 1e-3;
 
               return (
                 <div
                   key={r.id}
-                  className="p-4 rounded-xl bg-bg-base border border-border flex flex-col gap-2 relative overflow-hidden"
+                  className={`p-4 rounded-xl bg-bg-base border transition-all flex flex-col gap-2 relative overflow-hidden ${
+                    isBest ? "border-signal-green/60 shadow-md shadow-signal-green/10" : "border-border"
+                  }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-sm text-text-primary flex items-center gap-1.5">
@@ -535,7 +559,7 @@ export default function CompareView({
               <span>Comprehensive Multi-Criteria Scorecard</span>
             </h4>
             <p className="text-sm text-text-secondary mt-0.5">
-              Tabular comparison of routing quality, execution performance, and efficiency rankings.
+              Ranked in strict order of solution quality (lowest travel time).
             </p>
           </div>
 
@@ -554,13 +578,13 @@ export default function CompareView({
               </thead>
               <tbody className="divide-y divide-border">
                 {results.map((r, idx) => {
-                  const isTop = idx === 0 || r.id === "qpso";
+                  const isTop = Math.abs(r.travel_time_min - minTravelTime) < 1e-3;
                   const timeSaved = Math.max(0, baselineTime - r.travel_time_min);
                   return (
                     <tr
                       key={r.id}
                       className={`hover:bg-bg-base/70 transition-colors ${
-                        isTop ? "bg-signal-green/5 font-semibold" : ""
+                        isTop ? "bg-signal-green/10 font-semibold" : ""
                       }`}
                     >
                       <td className="py-3 px-4 font-mono font-bold text-sm">
@@ -578,13 +602,13 @@ export default function CompareView({
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 font-mono text-text-primary">
+                      <td className="py-3 px-4 font-mono text-text-primary font-bold">
                         {r.travel_time_min.toFixed(1)} min
                       </td>
                       <td className="py-3 px-4 font-mono text-text-primary">
                         {r.distance_km.toFixed(1)} km
                       </td>
-                      <td className="py-3 px-4 font-mono text-signal-green">
+                      <td className="py-3 px-4 font-mono text-signal-green font-bold">
                         {timeSaved > 0 ? `+${timeSaved.toFixed(1)} min` : "0.0 min"}
                       </td>
                       <td className="py-3 px-4 font-mono text-text-secondary">

@@ -1,170 +1,156 @@
 # Quantum-Inspired Traffic Route Optimization (QPSO)
 
-**SIH 2026 — Problem Statement SIH26137** · Egreen Quanta · Quantum Technology Vertical
+**SIH 2026 — Problem Statement SIH26137** · E-Green Quanta · Quantum Technology Vertical
 
-A production-grade traffic route optimization engine and operational dashboard that finds near-optimal delivery routes over the **real Coimbatore road network** (fetched via OpenStreetMap / OSMnx) and standard benchmark datasets. The system benchmarks **Quantum-behaved Particle Swarm Optimization (QPSO)** and **Quantum Walk State-Vector Simulation (QWOA)** against classical metaheuristics and industry-standard heuristics.
+A production-grade traffic route optimization engine and executive dispatch dashboard that finds near-optimal delivery routes over the **70+ km Coimbatore Regional Road Network** (OpenStreetMap / OSMnx) and benchmark datasets. The system benchmarks **Quantum-behaved Particle Swarm Optimization (QPSO)** and **Quantum Walk State-Vector Simulation (QWOA)** against classical metaheuristics (PSO, Genetic Algorithms) and industry-standard heuristics (Clarke-Wright, Cheapest Insertion).
 
 ---
 
-## System Architecture
+## 1. System Architecture
 
-The project is organized as a clean, decoupled fullstack system:
+The project is structured as a decoupled, fullstack enterprise application:
 
 ```
 egreen-quanta/
 ├── backend/                  # Python FastAPI service & core optimization engine
-│   ├── api.py                # RESTful & WebSocket streaming API with explainability endpoints
+│   ├── api.py                # RESTful & WebSocket streaming API with auth & explainability
+│   ├── auth.py               # JWT Bearer authentication & Bcrypt password hashing
+│   ├── database.py           # SQLAlchemy PostgreSQL client with automatic SQLite fallback
+│   ├── models.py             # ORM models (Users, OptimizationLogs audit trail)
 │   ├── explainability.py     # Deterministic Explainability Layer (zero LLMs / template & JSON)
-│   ├── osm_road_network.py   # 24-hub 30km Greater Coimbatore OSM graph & scenarios
-│   ├── graphhopper_client.py # OSM & GraphHopper matrix client & dynamic generator
+│   ├── osm_road_network.py   # 36-hub 70+ km Greater Coimbatore Regional OSM road graph
+│   ├── graphhopper_client.py # OSM & GraphHopper matrix client (75km bounding radius)
 │   ├── qpso.py               # Quantum-behaved Particle Swarm Optimization
 │   ├── classical_pso.py      # Classical velocity- & inertia-driven PSO
-│   ├── ga.py                 # Genetic Algorithm (GA-OX and GA-PMX)
+│   ├── ga.py                 # Genetic Algorithm (OX, PMX crossover, 2-opt inversion mutation)
 │   ├── clarke_wright.py      # Clarke-Wright Savings heuristic
 │   ├── cheapest_insertion.py # Cheapest Insertion heuristic
-│   ├── qwoa.py               # Quantum Walk Optimization (classical state-vector)
+│   ├── qwoa.py               # Quantum Walk Optimization (classical state-vector simulation)
 │   ├── baseline.py           # Dijkstra shortest path & Nearest-Neighbor
 │   ├── cvrp_qpso.py          # Capacitated VRP solver with multi-trip reload
 │   ├── cvrp_baseline.py      # Matching classical baselines for CVRP
 │   ├── cvrp_benchmark.py     # Multi-instance benchmark runner
-│   ├── requirements.txt      # Python dependencies
+│   ├── requirements.txt      # Python dependencies (FastAPI, SQLAlchemy, psycopg2, passlib)
 │   └── data/                 # CVRP benchmark dataset (.npz)
-├── frontend/                 # Next.js 14 App Router operational dashboard
+├── frontend/                 # Next.js 14 App Router operations & executive dashboard
 │   ├── src/app/              # Page routes, layout, and global styles
-│   ├── src/components/       # MapComponent, RouteExplanationCard, ConvergenceChart, CompareView
-│   ├── tailwind.config.ts    # Traffic-signal design tokens (Dark/Light)
+│   ├── src/components/
+│   │   ├── AdminLoginPage.tsx        # Dedicated Admin Authentication landing gate
+│   │   ├── AnalyticsDashboardView.tsx # Map-free executive KPI & analytics dashboard
+│   │   ├── CompareView.tsx           # 5-graph multi-algorithm comparative benchmark suite
+│   │   ├── ConvergenceChart.tsx      # Quantum convergence curve vs baseline
+│   │   ├── MapComponent.tsx          # Animated Leaflet map with vehicle tracer & morph
+│   │   ├── RouteExplanationCard.tsx  # Deterministic Explainability Layer card
+│   │   ├── AdminPortalView.tsx       # PostgreSQL database audit log console
+│   │   └── ThemeProvider.tsx         # Next-themes Dark/Light provider
+│   ├── tailwind.config.ts    # High-contrast traffic-signal design tokens
 │   └── package.json          # Node.js dependencies
-├── tests/                    # Automated verification test suite (16 tests)
-│   ├── test_explainability.py      # Unit tests for explanation generation & constraints
-│   ├── test_api_explainability.py  # FastAPI integration tests for /api/optimize & /api/explain
-│   └── test_graphhopper_osm.py     # 30km OSM graph, scenarios, & GraphHopper tests
-├── docs/                     # Technical documentation & audit logs
+├── tests/                    # Automated verification test suite (22 unit & integration tests)
+│   ├── test_auth_database.py       # JWT auth, user login, DB logging & fallback tests
+│   ├── test_explainability.py      # Explainability unit tests
+│   ├── test_api_explainability.py  # FastAPI integration tests
+│   ├── test_graphhopper_osm.py     # 70km regional network & GraphHopper tests
+│   └── test_solvers.py             # QPSO, PSO, GA, CVRP heuristics tests
+├── docs/                     # Technical documentation & mathematics specs
 │   ├── algorithms/           # 11 individual modular algorithm specifications
 │   ├── algorithms.md         # Master algorithm index
-│   ├── Intuition.md          # In-depth mathematics, concepts, and failure modes
-│   └── CHANGELOG.md          # Engine change and implementation audit log
+│   └── Intuition.md          # In-depth mathematics, quantum wave packets, and failure modes
 ├── Dockerfile                # Root container specification for GHCR deployment
 ├── .github/workflows/        # Automated CI/CD pipelines (GHCR & golden evals)
 ├── setup.md                  # Comprehensive setup & deployment guide
 ├── LICENSE.md                # MIT Open-Source License
-├── .gitattributes            # Line-ending normalization (LF)
-└── .gitignore                # Repository exclusions
+└── .gitignore                # Repository exclusions (includes changelog.md & *.db)
 ```
 
 ---
 
-## Algorithms Implemented
+## 2. Core Modules & Innovations
+
+### A. Dedicated Admin Authentication Gate
+* **Landing Gate (`AdminLoginPage.tsx`):** Access to dispatch operations is secured behind JWT Bearer token authentication.
+* **Pre-seeded Credentials:** Built-in demo access with **`admin` / `admin123`** with a 1-click autofill shortcut.
+* **Security Layer (`auth.py`):** Passwords hashed via `bcrypt`, signed JWT tokens (HS256) with role-based access control (`admin`, `dispatcher`).
+
+### B. PostgreSQL Integration with Zero-Crash SQLite Fallback
+* **Production Database (`database.py`, `models.py`):** Configured for PostgreSQL (`psycopg2-binary`).
+* **Resilient Fallback:** Includes a 2-second connection pre-ping probe. If PostgreSQL is offline or unconfigured, the backend automatically and seamlessly switches to an embedded SQLite database (`sqlite:///./egreen_quanta.db`) with zero downtime.
+* **Audit Logging:** Every optimization run records timestamp, scenario, stops count, distance, time, and crossover iteration.
+
+### C. 70+ km Regional Road Network
+* **36 Authentic Regional Hubs (`osm_road_network.py`):** Expanded from city center to greater Coimbatore district spanning:
+  * **North:** Mettupalayam, Karamadai, Annur (Nilgiris gateway)
+  * **East:** Avinashi, Karumathampatti, Palladam, Perumanallur (Tiruppur interstate border)
+  * **South:** Pollachi Central, Kinathukadavu, Negamam, Othakkalmandapam
+  * **West:** Walayar Interstate Freight Border, Madukkarai Cement Corridor, Ettimadai
+* **57 Regional Highway Segments:** Connects National Expressways (NH-544 6-lane, NH-83, NH-181).
+
+### D. Operations Dashboard & UX Customization
+* **Left-Side Persistent Sidebar:** Quick navigation between Live Simulation, Analytics Dashboard, and Admin Console.
+* **Customizable Tab Density (UX):** Global switcher (`Compact`, `Comfortable`, `Large`) dynamically scales tab padding, button sizing, and typography across all views with `localStorage` persistence.
+* **Live Simulation Page:** Interactive Leaflet map featuring:
+  * Dynamic Depot (`D`) and Destination (`🏁`) markers updating to the user's selected hubs.
+  * Live animated delivery vehicle tracer (`🚛 Tracing Live`).
+  * **Route Morph / Transition Animation:** Sequentially compares Baseline (Red) $\to$ Alternative (Yellow) $\to$ Optimal (Green).
+  * Collapsible Turn-by-Turn Route Legs Drawer.
+* **Analytics Dashboard (Strictly Map-Free):** Dedicated executive analytics view:
+  * 4 Executive KPI Metric Cards (large readable typography).
+  * Deterministic Explainability & Constraint Verification Card.
+  * Convergence Trajectory Curves.
+* **5-Graph Benchmark Suite (`CompareView.tsx`):**
+  1. *Normalized Performance Bars* (Time, Distance, Latency).
+  2. *Multi-Line Convergence Trajectories* across all 7 algorithms.
+  3. *Carbon & Energy Impact* (kg CO2 emitted factoring congestion delays).
+  4. *Pareto Frontier Matrix* (Computation Latency vs Time Savings).
+  5. *Comprehensive Multi-Criteria Scorecard* with true winner evaluation.
+
+---
+
+## 3. Algorithms Implemented
 
 | Algorithm | Category | Role | Primary File |
 |---|---|---|---|
 | **QPSO** | Quantum-Inspired Metaheuristic | Primary route optimization engine | [`backend/qpso.py`](backend/qpso.py) |
 | **QWOA** | True Quantum Simulation | Schrödinger state-vector simulation on $S_n$ | [`backend/qwoa.py`](backend/qwoa.py) |
 | **Classical PSO** | Swarm Intelligence | Velocity- and momentum-based baseline | [`backend/classical_pso.py`](backend/classical_pso.py) |
-| **GA-OX & GA-PMX** | Evolutionary Algorithms | Order and Partially Mapped Crossover | [`backend/ga.py`](backend/ga.py) |
+| **GA-OX & GA-PMX** | Evolutionary Algorithms | Order and Partially Mapped Crossover + 2-opt inversion | [`backend/ga.py`](backend/ga.py) |
 | **Clarke-Wright Savings** | Classical Heuristic | Industry-standard CVRP savings matrix | [`backend/clarke_wright.py`](backend/clarke_wright.py) |
 | **Cheapest Insertion** | Greedy Family Heuristic | Detour cost minimization along tour edges | [`backend/cheapest_insertion.py`](backend/cheapest_insertion.py) |
 | **Nearest-Neighbor** | Greedy Baseline | Myopic proximity baseline | [`backend/baseline.py`](backend/baseline.py) |
 | **Dijkstra's Algorithm** | Exact Pathfinding | Metric closure segment cost precomputation | [`backend/baseline.py`](backend/baseline.py) |
-| **Multi-Trip Capacity Repair** | Constraint Handling | Dynamic vehicle capacity reload handling | [`backend/cvrp_qpso.py`](backend/cvrp_qpso.py) |
-
-> In-depth mathematical formulas, concepts, and edge cases are documented in [`docs/Intuition.md`](docs/Intuition.md) and [`docs/algorithms/`](docs/algorithms/).
+| **Capacity Repair** | Constraint Handling | Dynamic vehicle capacity reload handling | [`backend/cvrp_qpso.py`](backend/cvrp_qpso.py) |
 
 ---
 
-## Operations Dashboard (UI)
+## 4. Quickstart
 
-The user interface is designed as an operational control console for SIH reviewers:
-
-* **Real Coimbatore Map Canvas:** Leaflet map rendering authentic GPS coordinates across 24 arterial hubs covering a **30+ km metropolitan radius** (Gandhipuram, RS Puram, Ukkadam, Peelamedu, Airport, Sulur, Eachanari SEZ, Thudiyalur, CHIL SEZ, Vadavalli, etc.).
-* **Scenario & Radius Presets:** 1-click selection of curated benchmark instances (Greater Coimbatore Metro, CBD Express, Airport Cargo, North-South Spine, or Dynamic Random OSM generation).
-* **Strict Traffic-Signal Semantics:**
-  * **Red (`#E5484D` / `#D92D3F`):** Unoptimized baseline route, congestion, bottlenecks.
-  * **Amber (`#F5A623` / `#E0980C`):** In-progress optimization, depot hubs, Classical PSO fast execution indicator.
-  * **Green (`#2ECC71` / `#189A5B`):** Quantum-optimized route, transit savings.
-* **Persistent 3-Column Layout:** Input parameters (left) and Results KPIs (right) remain persistently visible across all 3 center canvas tabs:
-  1. **Live Simulation:** Interactive map with before/after/alternative routes and animated crossfade transitions.
-  2. **Compare Algorithms:** Side-by-side bar chart (with runtime vs. quality Pareto insights) and multi-line convergence overlay across all 7 algorithms.
-  3. **Performance Trends:** Full-size convergence chart featuring a flat red baseline reference line, green QPSO curve, and a highlighted badge for the crossover point (*"the moment QPSO beat baseline"*).
-* **Deterministic Explainability Card:** Displays why the optimizer chose the selected route over alternatives, with constraint status, trade-offs, and evaluated candidate comparisons.
-* **Yellow Alternative Route Highlighting (`#F5A623`):** Suggested alternative routes (such as Clarke-Wright Savings) are rendered with distinct yellow/amber styling on the Leaflet map and within the explanation card to provide clear operational contrast against optimal (green) and baseline (red) paths.
-
----
-
-## OpenStreetMap (OSM) & GraphHopper Integration
-
-The engine connects to real-world geospatial road data through a multi-tier pipeline:
-* **24-Node 30km Greater Coimbatore OSM Network:** Spans across all major arterial highways (NH-544, NH-209, NH-83, NH-81, Mettupalayam Rd, Avinashi Rd, Western Bypass).
-* **GraphHopper Live API & Local Fallback:** Supports querying GraphHopper Matrix API with GPS coordinates, backed by an offline high-fidelity OSM metric closure with urban tortuosity factors.
-* **Dynamic Instance Generator (`POST /api/instances/generate`):** Dynamically samples $N$ delivery stops across custom radii with randomized customer demands. See [`setup.md`](setup.md) for full configuration options.
-
----
-
-## Explainability Layer (Deterministic & Future LLM Ready)
-
-The explainability layer translates raw optimizer evidence into both typed JSON and a fixed human-readable operational template **without any LLMs or non-deterministic generators**:
-
-```
-Optimizer Evidence (Road Network Distances, Travel Times, Demands, Graph Congestion)
-    ↓
-Structured Explanation Object (Typed Metrics, Reasons, Constraints, Trade-Offs, Alternative Comparison)
-    ↓
-Deterministic Human-Readable Template & Frontend Card (Instant SIH Review)
-    ↓
-[Future Extension] Downstream LLM Consumption (Zero Optimizer Changes Needed)
-```
-
-### Explanation Capabilities
-* **Factual Decision Drivers:** Evaluates underlying optimizer metrics (`lower_travel_time`, `lower_total_distance`, `capacity_satisfied`, `all_locations_covered`, `time_constraint_satisfied`).
-* **Explicit Trade-Offs:** Quantifies mileage vs. travel-time trade-offs when routes take detours to bypass high-congestion corridors.
-* **Alternative Route Benchmarking:** Evaluates and highlights the alternative route candidate in **Yellow (`#F5A623`)** alongside the optimal path.
-
----
-
-## Quickstart
-
-### 1. Launch the Backend API
+### 1. Launch Backend Service
 ```bash
 cd backend
 pip install -r requirements.txt
 python -m uvicorn api:app --host 127.0.0.1 --port 8000 --reload
 ```
-API docs available at: `http://127.0.0.1:8000/docs`
+API Documentation available at: `http://127.0.0.1:8000/docs`
 
-### 2. Launch the Frontend Dashboard
+### 2. Launch Operations Frontend
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 Open **`http://localhost:3000`** in your browser.
+1. Sign in on the Admin page using **`admin` / `admin123`** (or click *Fill Demo Credentials*).
+2. Use the left-side menu to explore **Live Simulation**, **Analytics Dashboard**, and **Admin Console**.
 
-### 3. Containerized Deployment (Docker)
-Build and run the containerized backend directly from the repository root:
-```bash
-docker build -t egreen-quanta .
-docker run -p 8000:8000 egreen-quanta
-```
-
-### 4. Run Automated Test Suite
-Run the full verification suite covering the explainability layer, constraints, and FastAPI integration:
+### 3. Run Automated Unit Tests
 ```bash
 python -m unittest discover tests
 ```
+Runs all 22 tests covering auth, JWT, database logging, OSM network, explainability, and solvers.
 
 ---
 
-## Benchmark Highlights (Real CVRP Instances)
+## 5. Documentation & Technical Specifications
 
-Tested across real-world instances with vehicle capacity constraints:
-* **QPSO Win Rate vs. Nearest-Neighbor:** **100% (5/5)**
-* **Average Transit Cost:** QPSO (**1519.05**) < Cheapest Insertion (**1533.23**) < Nearest-Neighbor (**1551.65**) < Clarke-Wright (**1562.41**)
-* **QWOA Quantum Amplification:** Amplifies probability of measuring the ground-state route from classical uniform $4.17\%$ to **$15.80\%$ ($3.79\times$ enhancement)**.
-
----
-
-## Documentation & Further Reading
-
-* [Setup & Deployment Guide](setup.md) — Comprehensive installation, testing, Docker containerization, and scenario details.
-* [Algorithm Specifications & Intuition](docs/) — Mathematical formulas, pseudo-code, and QUBO derivations.
+* [Setup & Deployment Guide](setup.md) — Comprehensive local setup, Docker containerization, PostgreSQL configuration, and API reference.
+* [Algorithm Intuition & Specs](docs/Intuition.md) — Quantum potential wells, wave packets, and contraction-expansion annealing mathematics.
 * [LICENSE](LICENSE.md) — MIT License.
-

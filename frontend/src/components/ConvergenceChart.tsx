@@ -21,7 +21,7 @@ export default function ConvergenceChart({
 }: ConvergenceChartProps) {
   if (!history || history.length === 0) {
     return (
-      <div className="h-64 flex items-center justify-center border border-border rounded bg-bg-surface text-text-secondary text-sm">
+      <div className="h-64 flex items-center justify-center border border-border rounded-xl bg-bg-surface text-text-secondary text-sm">
         Run optimization to view convergence history.
       </div>
     );
@@ -61,10 +61,14 @@ export default function ConvergenceChart({
   const lastX = getX(lastIdx);
   const lastY = getY(lastVal);
 
-  // Crossover Point
+  // Check if algorithm actually beat the baseline
+  const beatBaseline = lastVal < baselineCost - 0.05;
+  const curveColor = beatBaseline ? "#2ECC71" : "#F5A623";
+
+  // Crossover Point: Only valid if it genuinely beat the baseline
   let crossoverX: number | null = null;
   let crossoverY: number | null = null;
-  if (crossoverIteration !== null && crossoverIteration < history.length) {
+  if (beatBaseline && crossoverIteration !== null && crossoverIteration < history.length) {
     crossoverX = getX(crossoverIteration);
     crossoverY = getY(history[crossoverIteration]);
   }
@@ -78,12 +82,12 @@ export default function ConvergenceChart({
   ];
 
   return (
-    <div className="w-full bg-bg-surface border border-border rounded p-4 flex flex-col gap-3">
+    <div className="w-full bg-bg-surface border border-border rounded-xl p-5 flex flex-col gap-3 shadow-sm">
       {/* Chart Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h4 className="text-sm font-semibold text-text-primary">
-            Optimization Convergence vs. Classical Baseline
+          <h4 className="text-sm sm:text-base font-bold text-text-primary">
+            {algorithmName} Convergence Trajectory vs. Baseline
           </h4>
           <p className="text-xs text-text-secondary mt-0.5">
             X-Axis: Iterations &bull; Y-Axis: Route Travel Cost (Minutes)
@@ -92,13 +96,21 @@ export default function ConvergenceChart({
         <div className="flex items-center gap-4 text-xs font-mono">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-0.5 bg-signal-red inline-block"></span>
-            <span className="text-text-secondary">Baseline Cost:</span>
+            <span className="text-text-secondary">Baseline:</span>
             <span className="font-semibold text-text-primary">{baselineCost.toFixed(1)}m</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 bg-signal-green inline-block"></span>
+            <span
+              className="w-3 h-0.5 inline-block"
+              style={{ backgroundColor: curveColor }}
+            ></span>
             <span className="text-text-secondary">Converged:</span>
-            <span className="font-semibold text-signal-green">{lastVal.toFixed(1)}m</span>
+            <span
+              className="font-bold font-mono"
+              style={{ color: curveColor }}
+            >
+              {lastVal.toFixed(1)}m
+            </span>
           </div>
         </div>
       </div>
@@ -164,9 +176,9 @@ export default function ConvergenceChart({
           </text>
 
           <defs>
-            <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2ECC71" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#2ECC71" stopOpacity="0.0" />
+            <linearGradient id="convergenceCurveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={curveColor} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={curveColor} stopOpacity="0.0" />
             </linearGradient>
           </defs>
 
@@ -183,32 +195,31 @@ export default function ConvergenceChart({
           <text
             x={width - padding.right + 6}
             y={baselineY + 4}
-            className="font-mono text-[11px] fill-signal-red font-semibold"
+            className="font-mono text-[11px] fill-signal-red font-bold"
           >
-            Baseline ({baselineCost.toFixed(1)})
+            Baseline ({baselineCost.toFixed(1)}m)
           </text>
 
           {/* Area Fill beneath Convergence Curve */}
           <path
             d={`${pathD} L ${lastX},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`}
-            fill="url(#curveGradient)"
+            fill="url(#convergenceCurveGrad)"
           />
 
-          {/* 2. Convergence Curve in Green */}
+          {/* 2. Convergence Curve */}
           <path
             d={pathD}
             fill="none"
-            stroke="#2ECC71"
+            stroke={curveColor}
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
             className="transition-all duration-500 ease-out"
           />
 
-          {/* 3. Crossover Point ("The moment QPSO beat the baseline") */}
+          {/* 3. Crossover Point (Only displayed when algorithm beat baseline) */}
           {crossoverX !== null && crossoverY !== null && (
             <g>
-              {/* Radar pulse animation ring */}
               <circle
                 cx={crossoverX}
                 cy={crossoverY}
@@ -234,11 +245,11 @@ export default function ConvergenceChart({
                 strokeDasharray="2 2"
               />
               <rect
-                x={crossoverX - 58}
+                x={crossoverX - 60}
                 y={padding.top - 18}
-                width="116"
+                width="120"
                 height="18"
-                rx="3"
+                rx="4"
                 fill="var(--bg-surface)"
                 stroke="#F5A623"
                 strokeWidth="1"
@@ -247,48 +258,51 @@ export default function ConvergenceChart({
                 x={crossoverX}
                 y={padding.top - 6}
                 textAnchor="middle"
-                className="font-mono text-[9px] fill-signal-amber font-medium"
+                className="font-mono text-[10px] fill-signal-amber font-bold"
               >
-                Beat baseline @ Iter {crossoverIteration}
+                Beat baseline @ Iter #{crossoverIteration}
               </text>
             </g>
           )}
 
-          {/* 4. Final Converged Value Point & Annotation */}
+          {/* 4. Final Converged Point */}
           <circle
             cx={lastX}
             cy={lastY}
-            r="10"
-            fill="#2ECC71"
+            r="8"
+            fill={curveColor}
             className="animate-pulse opacity-40"
           />
           <circle
             cx={lastX}
             cy={lastY}
-            r="5"
-            fill="#2ECC71"
+            r="4.5"
+            fill={curveColor}
             stroke="#0B0F14"
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
           <text
             x={lastX + 8}
             y={lastY + 4}
-            className="font-mono text-[11px] fill-signal-green font-bold"
+            className="font-mono text-[11px] font-bold"
+            fill={curveColor}
           >
             {lastVal.toFixed(1)}m
           </text>
         </svg>
       </div>
 
-      {/* Operational Note */}
-      <div className="text-xs text-text-secondary flex items-center justify-between border-t border-border pt-2">
+      {/* Operational Diagnostic Footer */}
+      <div className="text-xs text-text-secondary flex flex-col sm:flex-row sm:items-center justify-between border-t border-border pt-2.5 gap-1">
         <span>
-          {crossoverIteration !== null
-            ? `QPSO achieved efficiency crossover at iteration ${crossoverIteration}.`
-            : "Optimization reached convergence across all evaluated particles."}
+          {beatBaseline && crossoverIteration !== null
+            ? `${algorithmName} crossed classical baseline at iteration #${crossoverIteration} (-${(baselineCost - lastVal).toFixed(1)} min saved).`
+            : beatBaseline
+            ? `${algorithmName} outperformed baseline without early crossover recording.`
+            : `${algorithmName} converged within baseline boundary (${lastVal.toFixed(1)} min vs baseline ${baselineCost.toFixed(1)} min).`}
         </span>
-        <span className="font-mono text-[11px] text-text-primary">
-          Total iterations: {history.length - 1}
+        <span className="font-mono text-text-primary font-semibold">
+          Evaluated {history.length - 1} iterations
         </span>
       </div>
     </div>

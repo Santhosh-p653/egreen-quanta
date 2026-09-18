@@ -1,204 +1,168 @@
-# Setup & Deployment Guide — Egreen Quanta
+# Setup & Deployment Guide — E-Green Quanta
 
-This guide walks you through setting up, running, testing, and containerizing the **Quantum-Inspired Metaheuristic Traffic Route Optimization Engine (QPSO)** and **Operations Dashboard**.
+This comprehensive guide details how to install, configure, execute, test, and deploy the **E-Green Quanta Quantum-Inspired Traffic Route Optimization System**.
 
 ---
 
-## 1. Prerequisites
+## 1. Prerequisites & System Requirements
 
-Ensure the following tools are installed on your environment:
-
-* **Python:** 3.10, 3.11, or 3.12 (Python 3.14 compatible)
-* **Node.js:** v18.17+ or v20+ (Node v24 supported; npm v10+)
-* **Git:** For cloning and version control
+* **Python:** 3.10, 3.11, 3.12, or 3.14
+* **Node.js:** v18.17+ or v20+ (Node v22 / v24 fully supported; npm v10+)
+* **PostgreSQL:** (Optional, version 14+) — If not installed or running, the backend automatically uses an embedded SQLite database (`sqlite:///./egreen_quanta.db`) with zero manual setup required.
+* **Git:** Version control
 * **Docker:** (Optional) For containerized execution
 
 ---
 
-## 2. Repository Layout
-
-The project is structured into independent, production-grade workspaces:
+## 2. Directory Architecture
 
 ```
 egreen-quanta/
-├── backend/                  # Python FastAPI service & optimization engine
-│   ├── api.py                # RESTful & WebSocket API
-│   ├── explainability.py     # Deterministic Explainability Layer
-│   ├── osm_road_network.py   # 24-hub 30km Greater Coimbatore OSM graph
-│   ├── graphhopper_client.py # OSM & GraphHopper matrix client & instance generator
+├── backend/                  # Python FastAPI service & core optimization engine
+│   ├── api.py                # RESTful & WebSocket API with authentication & telemetry
+│   ├── auth.py               # JWT token generation, verification & bcrypt hashing
+│   ├── database.py           # SQLAlchemy client with automatic PostgreSQL/SQLite detection
+│   ├── models.py             # User and OptimizationLog database models
+│   ├── osm_road_network.py   # 36-hub 70+ km Greater Coimbatore Regional network
+│   ├── graphhopper_client.py # OSM matrix client (75km radius)
 │   ├── qpso.py               # Quantum-behaved Particle Swarm Optimization
-│   ├── classical_pso.py      # Classical Velocity-driven PSO
-│   ├── ga.py                 # Genetic Algorithms (GA-OX, GA-PMX)
-│   ├── clarke_wright.py      # Clarke-Wright Savings Heuristic
-│   ├── cheapest_insertion.py # Cheapest Insertion Heuristic
-│   ├── qwoa.py               # Quantum Walk State-Vector Simulation
-│   ├── baseline.py           # Dijkstra & Nearest-Neighbor
+│   ├── classical_pso.py      # Classical Velocity PSO baseline
+│   ├── ga.py                 # Genetic Algorithm (OX, PMX, 2-opt inversion mutation)
+│   ├── clarke_wright.py      # Clarke-Wright Savings heuristic
+│   ├── cheapest_insertion.py # Cheapest Insertion heuristic
 │   ├── cvrp_qpso.py          # Capacitated VRP solver with multi-trip reload
 │   ├── requirements.txt      # Python dependencies
-│   └── data/                 # CVRP benchmark dataset (cvrp_10.npz)
-├── frontend/                 # Next.js 14 App Router dashboard
-│   ├── src/app/              # Operational UI (3-column layout)
-│   ├── src/components/       # MapComponent, RouteExplanationCard, CompareView
-│   ├── package.json          # Node.js dependencies
+│   └── data/                 # Benchmark datasets (.npz)
+├── frontend/                 # Next.js 14 App Router operations dashboard
+│   ├── src/app/              # Root layout, theme provider, and primary views
+│   ├── src/components/
+│   │   ├── AdminLoginPage.tsx        # Dedicated Admin Authentication landing gate
+│   │   ├── AnalyticsDashboardView.tsx # Map-free executive KPI & analytics dashboard
+│   │   ├── CompareView.tsx           # 5-graph multi-algorithm comparative benchmark suite
+│   │   ├── ConvergenceChart.tsx      # Quantum convergence curve vs baseline
+│   │   ├── MapComponent.tsx          # Animated Leaflet map with vehicle tracer & morph
+│   │   ├── RouteExplanationCard.tsx  # Deterministic Explainability Layer card
+│   │   └── AdminPortalView.tsx       # PostgreSQL database audit log console
+│   ├── package.json          # Node dependencies
 │   └── tailwind.config.ts    # High-contrast traffic signal design tokens
-├── tests/                    # Automated verification suite (16 tests)
-│   ├── test_explainability.py      # Explainability unit tests
-│   ├── test_api_explainability.py  # FastAPI integration tests
-│   └── test_graphhopper_osm.py     # OSM & GraphHopper generator tests
-├── docs/                     # Comprehensive mathematics & architecture specs
+├── tests/                    # Automated verification test suite (22 tests)
 ├── Dockerfile                # Root container specification
-├── README.md                 # Project overview & benchmark results
-├── LICENSE.md                # MIT Open-Source License
+├── README.md                 # Master documentation
 └── setup.md                  # This setup guide
 ```
 
 ---
 
-## 3. Local Development Setup
+## 3. Backend Setup & Execution
 
-### Step A: Backend API Service
-
-1. Open a terminal and navigate to `backend/`:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a Python virtual environment (recommended):
-   ```bash
-   # Windows (PowerShell)
-   python -m venv venv
-   .\venv\Scripts\Activate.ps1
-
-   # Linux / macOS
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-3. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Start the FastAPI server with live reloading:
-   ```bash
-   uvicorn api:app --host 127.0.0.1 --port 8000 --reload
-   ```
-5. Verify the backend is live:
-   * **Health Check:** `http://127.0.0.1:8000/api/health`
-   * **Interactive OpenAPI Swagger Docs:** `http://127.0.0.1:8000/docs`
-
----
-
-### Step B: Frontend Dashboard
-
-1. Open a second terminal and navigate to `frontend/`:
-   ```bash
-   cd frontend
-   ```
-2. Install npm dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the Next.js development server:
-   ```bash
-   npm run dev
-   ```
-4. Access the operational dashboard in your browser at:
-   ```
-   http://localhost:3000
-   ```
-
----
-
-## 4. Running the Automated Test Suite
-
-The verification suite contains **16 tests** covering deterministic explainability, constraint checks, zero-mutation optimizer consistency, GraphHopper matrix extraction, and FastAPI endpoints.
-
-Run the tests from the repository root:
-
-```bash
-# Discover and run all test modules
-python -m unittest discover tests
-
-# Or run specific test modules
-python -m unittest tests/test_explainability.py
-python -m unittest tests/test_api_explainability.py
-python -m unittest tests/test_graphhopper_osm.py
-```
-
-All 16 tests should pass with `OK`.
-
----
-
-## 5. Docker Containerized Deployment
-
-You can build and deploy the containerized backend directly using the root `Dockerfile`:
-
-```bash
-# 1. Build the container image
-docker build -t egreen-quanta:latest .
-
-# 2. Run the container exposing port 8000
-docker run -d --name egreen-service -p 8000:8000 egreen-quanta:latest
-
-# 3. Test container health
-curl http://localhost:8000/api/health
-```
-
----
-
-## 6. OpenStreetMap & GraphHopper Configuration
-
-### High-Fidelity OSM Metric Closure (Default — Offline)
-By default, the engine uses an authentic NetworkX Dijkstra metric closure computed directly over our **24-landmark, 40-segment Greater Coimbatore OpenStreetMap graph**. This guarantees:
-* **Zero external API dependencies** (100% offline and reproducible for hackathon evaluations).
-* Authentic GPS coordinates across a **30+ km metropolitan diameter**.
-* Real arterial speed limits (Avinashi Rd, Trichy Rd, NH-544, Sathy Rd) and simulated live congestion factors.
-
-### Live GraphHopper API (Optional)
-If you wish to query GraphHopper's live routing engine or a local GraphHopper Docker container:
-```bash
-# Remote GraphHopper API Key
-export GRAPHHOPPER_API_KEY="your-api-key-here"
-
-# Or local GraphHopper instance URL
-export GRAPHHOPPER_URL="http://localhost:8989/matrix"
-```
-The client in `backend/graphhopper_client.py` will automatically route matrix calls through GraphHopper with automatic fallback to the local OSM closure if unavailable.
-
----
-
-## 7. Scenario Presets & High-Differentiation Benchmarks
-
-To showcase genuine algorithmic differences between QPSO, Classical PSO, GA, and heuristics, use the **Scenario & Radius** selector in the UI or call `GET /api/scenarios`:
-
-| Scenario ID | Name | Stops | Radius | Focus |
-|---|---|---|---|---|
-| `metro_greater` | **Greater Coimbatore Metro** | 12 | **32 km** | **Maximum differentiation:** Explodes search space to $4.79 \times 10^8$ permutations. QPSO out-optimizes baselines. |
-| `cbd_express` | **CBD Commercial Express** | 5 | 8 km | Fast central loop around Gandhipuram core. |
-| `industrial_cargo` | **Airport & Eastern Cargo** | 8 | 24 km | Highway freight loop via NH-544 and Sulur. |
-| `north_south` | **North-South Arterial** | 8 | 26 km | Traverses central bottlenecks from Thudiyalur to Eachanari. |
-| `western_suburbs` | **Western Suburbs** | 6 | 18 km | Foothills loop via Vadavalli and Kovaipudur. |
-| `random` | **Dynamic Random OSM** | 10 | 30 km | Generates dynamic instances with randomized customer demand. |
-
----
-
-## 8. Legacy Gradio Demo (Fallback Option)
-
-If you need a quick standalone single-script demonstration without starting the Next.js frontend:
+### A. Environment Configuration
+Navigate to the `backend/` directory and create a virtual environment:
 
 ```bash
 cd backend
-python gradio_app.py
+
+# Windows (PowerShell)
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
 ```
-This launches a Gradio UI at `http://127.0.0.1:7860`.
+
+### B. Dependency Installation
+Install dependencies including FastAPI, SQLAlchemy, PostgreSQL drivers, and crypto security libraries:
+```bash
+pip install -r requirements.txt
+```
+
+### C. Database Configuration
+By default, the backend checks for PostgreSQL at `postgresql://postgres:postgres@localhost:5432/egreen_quanta`.
+* **If PostgreSQL is available:** It connects and synchronizes tables automatically.
+* **If PostgreSQL is offline:** It automatically logs a graceful notice and falls back to an embedded SQLite database (`sqlite:///./egreen_quanta.db`). Zero configuration required.
+* To specify custom credentials, set the `DATABASE_URL` environment variable:
+  ```bash
+  # Example custom PostgreSQL URI:
+  export DATABASE_URL="postgresql://user:password@localhost:5432/my_db"
+  ```
+
+### D. Starting the Server
+Start the FastAPI server:
+```bash
+python -m uvicorn api:app --host 127.0.0.1 --port 8000 --reload
+```
+* **API Documentation (Swagger UI):** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **System Status Probe:** [http://127.0.0.1:8000/api/admin/system](http://127.0.0.1:8000/api/admin/system)
 
 ---
 
-## 9. Troubleshooting & FAQ
+## 4. Frontend Setup & Execution
 
-* **Issue: `npm run dev` fails with execution policy error on Windows PowerShell**
-  * *Solution:* Use `npm.cmd run dev` or run PowerShell as Administrator and execute `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`.
-* **Issue: Port 8000 is already in use**
-  * *Solution:* Run `uvicorn api:app --host 127.0.0.1 --port 8080` and adjust the API URL in frontend if needed.
-* **Issue: Leaflet map markers fail to render**
-  * *Solution:* Leaflet CSS is imported in `frontend/src/app/globals.css`. Ensure Next.js dev server has finished bundling and open `http://localhost:3000`.
-* **Issue: Line-ending LF/CRLF warnings when staging files**
-  * *Solution:* The repository includes a root `.gitattributes` file enforcing `* text=auto` and `eol=lf` to keep line endings clean and uniform across Windows and Linux.
+Open a separate terminal window and navigate to `frontend/`:
+
+```bash
+cd frontend
+npm install
+```
+
+### A. Running in Development Mode
+```bash
+npm run dev
+# Or on Windows PowerShell:
+npm.cmd run dev
+```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
+
+### B. Building for Production
+To verify production bundle compilation:
+```bash
+npm run build
+# Or on Windows PowerShell:
+npm.cmd run build
+```
+
+---
+
+## 5. User Guide & Core Workflows
+
+### 1. Administrator Authentication
+* When opening `http://localhost:3000`, you will be greeted by the **Admin Sign In** page.
+* **Default Admin Credentials:**
+  * **Username:** `admin`
+  * **Password:** `admin123`
+* Use the **"Click to Fill Demo Credentials"** button for instant one-click login.
+
+### 2. Left-Side Navigation Sidebar
+Use the persistent left sidebar to switch between views:
+* 🛰️ **Live Simulation:** Spatial routing, animated Leaflet map, and turn-by-turn legs.
+* 📊 **Analytics Dashboard:** Map-free executive KPI reporting, 5 rich benchmark charts, and deterministic explainability.
+* 🛡️ **Admin Console:** PostgreSQL telemetry and historical audit logs.
+* **Tab Density Control:** Adjust tab size (`Compact` / `Normal` / `Large`) from the dashboard or sidebar to suit your display preferences.
+* **Theme Switcher:** Toggle between Dark and Light mode.
+* **Sign Out:** Returns to the login gate.
+
+### 3. Live Route Simulation & Morph Animation
+* Select any 70km Regional preset (e.g. `Regional Conglomerate`, `Interstate Freight Corridor`).
+* Pick an **Origin Depot** and optional **Destination Hub**. Notice the Leaflet map immediately updates the gold **`D`** depot marker and blue **`🏁`** destination marker at those exact hubs.
+* Click **"Play Route Morph"** on the map to trigger a visual transition animation that cycles through:
+  1. *Baseline Route (Red, dashed)* with live moving vehicle.
+  2. *Alternative Suboptimal Candidate (Yellow)* with live moving vehicle.
+  3. *Quantum-behaved PSO Optimal Route (Green)* with live moving vehicle.
+
+---
+
+## 6. Automated Verification Test Suite
+
+Run the full suite of 22 automated tests:
+
+```bash
+# From repository root:
+python -m unittest discover tests
+```
+
+Tests verify:
+1. `tests/test_auth_database.py`: JWT token generation, admin authentication, SQLite fallback, and audit logging.
+2. `tests/test_graphhopper_osm.py`: 70+ km regional network, 36 landmarks, 57 road edges, and GraphHopper matrix client.
+3. `tests/test_explainability.py`: Deterministic route explainability and constraint verification.
+4. `tests/test_api_explainability.py`: FastAPI endpoints for optimization and explanation retrieval.
+5. `tests/test_solvers.py`: QPSO, Classical PSO, GA (OX/PMX), and classical heuristics.

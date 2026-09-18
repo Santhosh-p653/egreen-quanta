@@ -11,6 +11,7 @@ import {
   Layers,
   Sparkles,
   Zap,
+  SlidersHorizontal,
 } from "lucide-react";
 import CompareView, { AlgorithmResult } from "@/components/CompareView";
 import RouteExplanationCard, { RouteExplanationData } from "@/components/RouteExplanationCard";
@@ -39,6 +40,8 @@ interface AnalyticsDashboardViewProps {
   convergenceHistory: number[];
   baselineCost: number;
   crossoverIteration: number | null;
+  tabSize?: "compact" | "comfortable" | "large";
+  onTabSizeChange?: (size: "compact" | "comfortable" | "large") => void;
 }
 
 export default function AnalyticsDashboardView({
@@ -50,6 +53,8 @@ export default function AnalyticsDashboardView({
   convergenceHistory,
   baselineCost,
   crossoverIteration,
+  tabSize = "comfortable",
+  onTabSizeChange,
 }: AnalyticsDashboardViewProps) {
   const [activeDashboardTab, setActiveDashboardTab] = useState<"comparison" | "explanation" | "convergence">("comparison");
 
@@ -58,23 +63,84 @@ export default function AnalyticsDashboardView({
   const estCarbonSavedKg = distanceSavedKm * 0.21 * 1.15; // 0.21 kg/km with idling factor
   const estFuelSavedL = distanceSavedKm * 0.11; // ~11 liters per 100km
 
+  const isOptimal = metrics.timeSavedMin > 0.01;
+
+  // Density styles for tab buttons
+  const tabBtnClass =
+    tabSize === "compact"
+      ? "px-3 py-1.5 text-xs"
+      : tabSize === "large"
+      ? "px-5 py-3 text-base font-bold"
+      : "px-4 py-2.5 text-sm font-semibold";
+
   return (
     <div className="w-full min-h-full flex flex-col gap-6 p-6 overflow-y-auto">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-text-primary tracking-tight">
             Performance & Analytics Dashboard
           </h1>
           <p className="text-sm sm:text-base text-text-secondary mt-1">
-            Executive telemetry, algorithmic benchmark comparisons, deterministic explainability audit, and green fleet metrics.
+            Executive telemetry, truthful algorithmic benchmarking, deterministic explainability audit, and carbon savings.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="px-3.5 py-1.5 rounded-lg border border-signal-green/30 bg-signal-green/10 text-signal-green text-sm font-semibold font-mono flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Tab Size Customizer Controls */}
+          {onTabSizeChange && (
+            <div className="flex items-center gap-1 bg-bg-surface border border-border p-1 rounded-xl text-xs font-semibold shadow-sm">
+              <span className="text-text-secondary px-2 flex items-center gap-1">
+                <SlidersHorizontal size={13} />
+                <span>Tab Size:</span>
+              </span>
+              <button
+                onClick={() => onTabSizeChange("compact")}
+                className={`px-2.5 py-1 rounded-lg transition-colors ${
+                  tabSize === "compact"
+                    ? "bg-bg-base text-text-primary font-bold shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Compact
+              </button>
+              <button
+                onClick={() => onTabSizeChange("comfortable")}
+                className={`px-2.5 py-1 rounded-lg transition-colors ${
+                  tabSize === "comfortable"
+                    ? "bg-bg-base text-text-primary font-bold shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Normal
+              </button>
+              <button
+                onClick={() => onTabSizeChange("large")}
+                className={`px-2.5 py-1 rounded-lg transition-colors ${
+                  tabSize === "large"
+                    ? "bg-bg-base text-text-primary font-bold shadow-sm"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Large
+              </button>
+            </div>
+          )}
+
+          {/* Dynamic Status Badge (Truthful) */}
+          <div
+            className={`px-3.5 py-1.5 rounded-lg border text-sm font-semibold font-mono flex items-center gap-2 ${
+              isOptimal
+                ? "border-signal-green/30 bg-signal-green/10 text-signal-green"
+                : "border-signal-amber/30 bg-signal-amber/10 text-signal-amber"
+            }`}
+          >
             <Zap size={15} />
-            <span>Optimal Routing Active</span>
+            <span>
+              {isOptimal
+                ? `Optimal Routing Discovered (-${metrics.timeImprovementPct.toFixed(1)}%)`
+                : "Baseline Equivalent Solution"}
+            </span>
           </div>
         </div>
       </div>
@@ -87,16 +153,26 @@ export default function AnalyticsDashboardView({
         <div className="p-5 rounded-xl bg-bg-surface border border-border shadow-sm flex flex-col gap-3">
           <div className="flex items-center justify-between text-sm text-text-secondary">
             <span className="flex items-center gap-2 font-medium">
-              <Clock size={16} className="text-signal-green" />
+              <Clock size={16} className={isOptimal ? "text-signal-green" : "text-signal-amber"} />
               <span>Total Transit Time</span>
             </span>
-            <span className="px-2 py-0.5 rounded font-mono font-bold text-xs bg-signal-green/15 text-signal-green border border-signal-green/30">
-              -{metrics.timeImprovementPct.toFixed(1)}%
+            <span
+              className={`px-2 py-0.5 rounded font-mono font-bold text-xs border ${
+                isOptimal
+                  ? "bg-signal-green/15 text-signal-green border-signal-green/30"
+                  : "bg-signal-amber/15 text-signal-amber border-signal-amber/30"
+              }`}
+            >
+              {isOptimal ? `-${metrics.timeImprovementPct.toFixed(1)}%` : "0.0%"}
             </span>
           </div>
 
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold font-mono text-signal-green">
+            <span
+              className={`text-3xl font-bold font-mono ${
+                isOptimal ? "text-signal-green" : "text-text-primary"
+              }`}
+            >
               {metrics.afterTime.toFixed(1)}
             </span>
             <span className="text-sm font-semibold text-text-secondary">minutes</span>
@@ -166,7 +242,7 @@ export default function AnalyticsDashboardView({
               <span>Engine Latency</span>
             </span>
             <span className="px-2 py-0.5 rounded font-mono font-bold text-xs bg-signal-amber/15 text-signal-amber border border-signal-amber/30">
-              {crossoverIteration !== null ? `Iter #${crossoverIteration}` : "Immediate"}
+              {crossoverIteration !== null && isOptimal ? `Iter #${crossoverIteration}` : "Iter 0"}
             </span>
           </div>
 
@@ -179,18 +255,18 @@ export default function AnalyticsDashboardView({
 
           <div className="flex items-center justify-between pt-2 border-t border-border/70 text-xs text-text-secondary">
             <span>Iterations: <strong className="text-text-primary font-mono">{metrics.iterationCount}</strong></span>
-            <span>Crossed Baseline Early</span>
+            <span>{isOptimal ? "Beat Baseline" : "Within Baseline"}</span>
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION TABS FOR DASHBOARD VIEWS */}
+      {/* SECTION TABS FOR DASHBOARD VIEWS WITH ADJUSTABLE TAB SIZE */}
       {/* ========================================================================= */}
       <div className="flex items-center gap-2 bg-bg-surface border border-border p-1.5 rounded-xl text-sm w-fit">
         <button
           onClick={() => setActiveDashboardTab("comparison")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabBtnClass} ${
             activeDashboardTab === "comparison"
               ? "bg-bg-base text-text-primary shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -202,7 +278,7 @@ export default function AnalyticsDashboardView({
 
         <button
           onClick={() => setActiveDashboardTab("explanation")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabBtnClass} ${
             activeDashboardTab === "explanation"
               ? "bg-bg-base text-text-primary shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -214,7 +290,7 @@ export default function AnalyticsDashboardView({
 
         <button
           onClick={() => setActiveDashboardTab("convergence")}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all ${
+          className={`flex items-center gap-2 rounded-lg transition-all ${tabBtnClass} ${
             activeDashboardTab === "convergence"
               ? "bg-bg-base text-text-primary shadow-sm border border-border"
               : "text-text-secondary hover:text-text-primary"
@@ -234,6 +310,7 @@ export default function AnalyticsDashboardView({
             results={compareResults}
             isLoading={isComparing}
             onRefresh={onRefreshCompare}
+            tabSize={tabSize}
           />
         )}
 
@@ -244,18 +321,12 @@ export default function AnalyticsDashboardView({
         )}
 
         {activeDashboardTab === "convergence" && (
-          <div className="w-full max-w-4xl bg-bg-surface border border-border rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-text-primary mb-1">
-              Quantum Particle Swarm Convergence Trajectory
-            </h3>
-            <p className="text-sm text-text-secondary mb-4">
-              Real-time cost convergence graph showing how quantum tunneling escapes local minima to reach the optimal solution.
-            </p>
+          <div className="w-full max-w-4xl">
             <ConvergenceChart
               history={convergenceHistory}
               baselineCost={baselineCost}
               crossoverIteration={crossoverIteration}
-              algorithmName="QPSO"
+              algorithmName="Quantum-behaved PSO"
             />
           </div>
         )}
