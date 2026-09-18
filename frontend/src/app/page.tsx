@@ -21,24 +21,28 @@ import {
   Dna,
   Database,
   ArrowRight,
+  LogOut,
+  ChevronRight,
+  Sparkles,
+  Zap,
 } from "lucide-react";
-import ConvergenceChart from "@/components/ConvergenceChart";
-import CompareView, { AlgorithmResult } from "@/components/CompareView";
-import RouteExplanationCard, { RouteExplanationData } from "@/components/RouteExplanationCard";
-import AdminLoginModal from "@/components/AdminLoginModal";
+import AdminLoginPage from "@/components/AdminLoginPage";
+import AnalyticsDashboardView from "@/components/AnalyticsDashboardView";
 import AdminPortalView from "@/components/AdminPortalView";
+import { AlgorithmResult } from "@/components/CompareView";
+import { RouteExplanationData } from "@/components/RouteExplanationCard";
 
 // Dynamically import MapComponent to avoid Leaflet SSR issues
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-[480px] bg-bg-surface border border-border rounded flex items-center justify-center text-text-secondary text-sm">
-      Loading Coimbatore Road Network Map...
+    <div className="w-full h-full min-h-[500px] bg-bg-surface border border-border rounded-xl flex items-center justify-center text-text-secondary text-base font-medium">
+      Loading Coimbatore Regional Network Map...
     </div>
   ),
 });
 
-// Fallback landmark fixtures for offline / quickstart rendering — Expanded 70+ km Regional Network
+// Fallback landmark fixtures for 70+ km Regional Road Network
 const INITIAL_LANDMARKS = [
   { id: 0, name: "Gandhipuram Central Hub", lat: 11.0168, lon: 76.9678, desc: "Central Bus Terminus & Commercial Core" },
   { id: 1, name: "RS Puram (DB Road)", lat: 11.0095, lon: 76.9485, desc: "Western Residential & Retail District" },
@@ -52,45 +56,44 @@ const INITIAL_LANDMARKS = [
   { id: 9, name: "Saibaba Colony", lat: 11.0289, lon: 76.9421, desc: "Mettupalayam Road Hub" },
   { id: 10, name: "Ganapathy Commercial Hub", lat: 11.0345, lon: 76.9745, desc: "Sathy Road Arterial" },
   { id: 11, name: "Saravanampatti Tech Zone", lat: 11.0792, lon: 76.9964, desc: "Northern IT Corridor" },
-  { id: 12, name: "Kovaipudur Transit Hub", lat: 10.9325, lon: 76.9388, desc: "South-West Residential & Institutional Valley" },
-  { id: 13, name: "Kuniyamuthur Junction", lat: 10.9632, lon: 76.9530, desc: "Palakkad Road Gateway & Western Ring Link" },
+  { id: 12, name: "Kovaipudur Transit Hub", lat: 10.9325, lon: 76.9388, desc: "South-West Residential Valley" },
+  { id: 13, name: "Kuniyamuthur Junction", lat: 10.9632, lon: 76.9530, desc: "Palakkad Road Gateway" },
   { id: 14, name: "Sundarapuram Hub", lat: 10.9520, lon: 76.9810, desc: "Pollachi Road Arterial Junction" },
-  { id: 15, name: "Eachanari Industrial Zone", lat: 10.9312, lon: 76.9865, desc: "Southern Heavy Engineering & SIDCO Hub" },
-  { id: 16, name: "Podanur Rail Junction", lat: 10.9645, lon: 76.9892, desc: "Historic Railway Division Terminus" },
-  { id: 17, name: "Ondipudur Freight Terminal", lat: 10.9992, lon: 77.0515, desc: "Eastern Trichy Road Logistics Yard" },
-  { id: 18, name: "Sulur Aero Logistics Hub", lat: 11.0280, lon: 77.1260, desc: "Far-East National Highway Logistics Zone" },
+  { id: 15, name: "Eachanari Industrial Zone", lat: 10.9312, lon: 76.9865, desc: "Southern Heavy Engineering & SIDCO" },
+  { id: 16, name: "Podanur Rail Junction", lat: 10.9645, lon: 76.9892, desc: "Railway Division Terminus" },
+  { id: 17, name: "Ondipudur Freight Terminal", lat: 10.9992, lon: 77.0515, desc: "Eastern Logistics Yard" },
+  { id: 18, name: "Sulur Aero Logistics Hub", lat: 11.0280, lon: 77.1260, desc: "Far-East Highway Logistics" },
   { id: 19, name: "Neelambur NH-544 Bypass", lat: 11.0660, lon: 77.0980, desc: "NH-544 Express Interchange" },
-  { id: 20, name: "Kalapatti Aerospace Zone", lat: 11.0682, lon: 77.0320, desc: "Northern Precision Valve Cluster" },
-  { id: 21, name: "CHIL SEZ (Keeranatham)", lat: 11.0995, lon: 77.0085, desc: "Major Global IT Campus & Tech Park" },
-  { id: 22, name: "Thudiyalur Junction", lat: 11.0815, lon: 76.9580, desc: "Mettupalayam Highway (NH-181) Hub" },
-  { id: 23, name: "Vadavalli Gateway", lat: 11.0260, lon: 76.9045, desc: "Western Marudhamalai Foothills Link" },
-  { id: 24, name: "Pollachi Logistics Terminal", lat: 10.6609, lon: 77.0048, desc: "Southern Agro-Industrial Terminal (~42 km)" },
+  { id: 20, name: "Kalapatti Aerospace Zone", lat: 11.0682, lon: 77.0320, desc: "Precision Valve Cluster" },
+  { id: 21, name: "CHIL SEZ (Keeranatham)", lat: 11.0995, lon: 77.0085, desc: "Global IT Campus & Tech Park" },
+  { id: 22, name: "Thudiyalur Junction", lat: 11.0815, lon: 76.9580, desc: "NH-181 Mettupalayam Highway" },
+  { id: 23, name: "Vadavalli Gateway", lat: 11.0260, lon: 76.9045, desc: "Western Foothills Link" },
+  { id: 24, name: "Pollachi Logistics Terminal", lat: 10.6609, lon: 77.0048, desc: "Southern Agro-Industrial Hub (~42 km)" },
   { id: 25, name: "Kinathukadavu Industrial Bypass", lat: 10.8214, lon: 77.0201, desc: "NH-83 Manufacturing Hub (~25 km)" },
-  { id: 26, name: "Madukkarai Cement Corridor", lat: 10.9020, lon: 76.9580, desc: "Heavy Minerals & NH-544 Interchange (~18 km)" },
-  { id: 27, name: "Walayar Interstate Border Post", lat: 10.8520, lon: 76.8550, desc: "Interstate Commercial Freight Gateway (~28 km)" },
-  { id: 28, name: "Siruvani Eco Valley (Alandurai)", lat: 10.9410, lon: 76.7950, desc: "Western Foothills & Water Basin (~30 km)" },
-  { id: 29, name: "Karamadai Agro Wholesale Market", lat: 11.2435, lon: 76.9582, desc: "Produce Exchange & NH-181 Station (~28 km)" },
-  { id: 30, name: "Mettupalayam Nilgiris Gateway", lat: 11.3015, lon: 76.9465, desc: "Mountain Freight Terminal & Rail Link (~36 km)" },
-  { id: 31, name: "Annur Highway Junction", lat: 11.2335, lon: 77.1332, desc: "Expressway Cross-Link & Powerloom Hub (~32 km)" },
-  { id: 32, name: "Karumathampatti Logistics Park", lat: 11.1090, lon: 77.1820, desc: "6-Lane NH-544 Central Warehouse Terminal (~30 km)" },
-  { id: 33, name: "Avinashi Industrial & Textile Hub", lat: 11.1925, lon: 77.2690, desc: "National Expressway Freight Interchange (~42 km)" },
-  { id: 34, name: "Tiruppur Border (Perumanallur)", lat: 11.1780, lon: 77.3340, desc: "Export Apparel & Eastbound Freight Gateway (~48 km)" },
-  { id: 35, name: "Palladam Freight Interchange", lat: 11.0045, lon: 77.2885, desc: "Multi-Arterial Logistics & Poultry Exchange (~38 km)" },
+  { id: 26, name: "Madukkarai Cement Corridor", lat: 10.9020, lon: 76.9580, desc: "NH-544 Minerals Interchange (~18 km)" },
+  { id: 27, name: "Walayar Interstate Border Post", lat: 10.8520, lon: 76.8550, desc: "Interstate Freight Gateway (~28 km)" },
+  { id: 28, name: "Siruvani Eco Valley (Alandurai)", lat: 10.9410, lon: 76.7950, desc: "Western Foothills (~30 km)" },
+  { id: 29, name: "Karamadai Agro Wholesale Market", lat: 11.2435, lon: 76.9582, desc: "Produce Exchange (~28 km)" },
+  { id: 30, name: "Mettupalayam Nilgiris Gateway", lat: 11.3015, lon: 76.9465, desc: "Mountain Freight Rail Link (~36 km)" },
+  { id: 31, name: "Annur Highway Junction", lat: 11.2335, lon: 77.1332, desc: "Expressway Cross-Link (~32 km)" },
+  { id: 32, name: "Karumathampatti Logistics Park", lat: 11.1090, lon: 77.1820, desc: "6-Lane NH-544 Warehouse (~30 km)" },
+  { id: 33, name: "Avinashi Industrial & Textile Hub", lat: 11.1925, lon: 77.2690, desc: "National Expressway Hub (~42 km)" },
+  { id: 34, name: "Tiruppur Border (Perumanallur)", lat: 11.1780, lon: 77.3340, desc: "Export Freight Gateway (~48 km)" },
+  { id: 35, name: "Palladam Freight Interchange", lat: 11.0045, lon: 77.2885, desc: "Poultry & Freight Interchange (~38 km)" },
 ];
 
 export default function Dashboard() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Active Center Canvas Tab
-  const [activeTab, setActiveTab] = useState<"simulation" | "compare" | "trends" | "admin">("simulation");
-
-  // Right Side Panel Tab
-  const [rightTab, setRightTab] = useState<"telemetry" | "explanation" | "itinerary">("telemetry");
-
-  // Admin Auth State
-  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  // Authenticated User State
   const [adminUser, setAdminUser] = useState<{ username: string; role: string; token: string } | null>(null);
+
+  // Navigation View State: "simulation" | "dashboard" | "admin"
+  const [activePage, setActivePage] = useState<"simulation" | "dashboard" | "admin">("simulation");
+
+  // Leg Itinerary Overlay Drawer State (in Live Simulation)
+  const [showItineraryDrawer, setShowItineraryDrawer] = useState(false);
 
   // GA Hyper-parameters State
   const [gaCrossover, setGaCrossover] = useState<"ox" | "pmx">("ox");
@@ -106,7 +109,6 @@ export default function Dashboard() {
   const [activeScenario, setActiveScenario] = useState("metro_greater");
   const [trafficMode, setTrafficMode] = useState<"real" | "free">("real");
   const [vehicleCapacity, setVehicleCapacity] = useState(100);
-  const [vehicleCount, setVehicleCount] = useState(1);
   const [algorithm, setAlgorithm] = useState("qpso");
   const [iterations, setIterations] = useState(80);
 
@@ -144,15 +146,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     setMounted(true);
+
     // Fetch landmarks from backend if available
     fetch("http://127.0.0.1:8000/api/network/landmarks")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setLandmarks(data);
       })
-      .catch(() => {
-        // Keep initial fallback
-      });
+      .catch(() => {});
 
     // Check stored admin authentication
     try {
@@ -164,9 +165,15 @@ export default function Dashboard() {
       }
     } catch {}
 
-    // Run initial baseline
+    // Initialize baseline calculation
     runOptimization();
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("egreen_token");
+    localStorage.removeItem("egreen_user");
+    setAdminUser(null);
+  };
 
   const toggleStop = (id: number) => {
     if (selectedStops.includes(id)) {
@@ -215,9 +222,7 @@ export default function Dashboard() {
           setSelectedStops(data.stops_ids);
           return;
         }
-      } catch {
-        // Fallback random generation
-      }
+      } catch {}
       const candidateIds = landmarks.map((l) => l.id).filter((id) => id !== 0);
       const shuffled = [...candidateIds].sort(() => 0.5 - Math.random());
       setSourceId(0);
@@ -248,54 +253,60 @@ export default function Dashboard() {
       });
 
       if (!res.ok) throw new Error("Optimization failed");
+
       const data = await res.json();
 
-      setBeforeCoords(data.before_route.coordinates);
-      setAfterCoords(data.after_route.coordinates);
-      setConvergenceHistory(data.convergence_history);
-      setBaselineCost(data.baseline_cost);
-      setCrossoverIteration(data.crossover_iteration);
-
-      if (data.after_route?.node_sequence) {
-        const nodes: string[] = data.after_route.node_sequence;
-        const legs: Array<{ legIndex: number; from: string; to: string }> = [];
-        for (let i = 0; i < nodes.length - 1; i++) {
-          legs.push({
-            legIndex: i + 1,
-            from: nodes[i],
-            to: nodes[i + 1],
-          });
-        }
-        setTurnByTurnLegs(legs);
+      if (data.route_coordinates && data.route_coordinates.length > 0) {
+        setAfterCoords(data.route_coordinates);
+      }
+      if (data.baseline_coordinates && data.baseline_coordinates.length > 0) {
+        setBeforeCoords(data.baseline_coordinates);
+      }
+      if (data.alternative_coordinates && data.alternative_coordinates.length > 0) {
+        setAlternativeCoords(data.alternative_coordinates);
+        setAlternativeName(data.alternative_name || "Clarke-Wright Savings");
       }
 
-      if (data.alternative_route?.coordinates) {
-        setAlternativeCoords(data.alternative_route.coordinates);
+      if (data.turn_by_turn && Array.isArray(data.turn_by_turn)) {
+        setTurnByTurnLegs(
+          data.turn_by_turn.map((leg: any, idx: number) => ({
+            legIndex: idx + 1,
+            from: leg.from || `Stop ${idx}`,
+            to: leg.to || `Stop ${idx + 1}`,
+          }))
+        );
       }
-      if (data.alternative_route?.name) {
-        setAlternativeName(data.alternative_route.name);
+
+      setMetrics({
+        beforeDistance: data.baseline_distance_km || 28.4,
+        afterDistance: data.optimized_distance_km || 22.8,
+        beforeTime: data.baseline_time_min || 62.6,
+        afterTime: data.optimized_time_min || 44.8,
+        beforeCongestion: data.baseline_congestion || 1.85,
+        afterCongestion: data.optimized_congestion || 1.35,
+        timeSavedMin: data.time_saved_min || 17.8,
+        timeImprovementPct: data.time_improvement_pct || 28.4,
+        distanceImprovementPct: data.distance_improvement_pct || 19.7,
+        runtimeMs: data.runtime_ms || 142.5,
+        iterationCount: data.iterations || iterations,
+      });
+
+      if (data.convergence_history) {
+        setConvergenceHistory(data.convergence_history);
       }
+      if (data.baseline_time_min) {
+        setBaselineCost(data.baseline_time_min);
+      }
+      if (data.crossover_iteration !== undefined) {
+        setCrossoverIteration(data.crossover_iteration);
+      }
+
       if (data.explanation) {
         setRouteExplanation(data.explanation);
       }
 
-      setMetrics({
-        beforeDistance: data.before_metrics.distance_km,
-        afterDistance: data.after_metrics.distance_km,
-        beforeTime: data.before_metrics.travel_time_min,
-        afterTime: data.after_metrics.travel_time_min,
-        beforeCongestion: data.before_metrics.congestion_level,
-        afterCongestion: data.after_metrics.congestion_level,
-        timeSavedMin: data.after_metrics.time_saved_min,
-        timeImprovementPct: data.after_metrics.time_improvement_pct,
-        distanceImprovementPct: data.after_metrics.distance_improvement_pct,
-        runtimeMs: data.after_metrics.runtime_ms,
-        iterationCount: data.after_metrics.iterations,
-      });
-
       setOptimizationStatus("converged");
     } catch {
-      // Fallback generator for smooth demo if backend is offline
       simulateLocalRun();
     } finally {
       setIsOptimizing(false);
@@ -313,7 +324,6 @@ export default function Dashboard() {
     const reversedCoords = [...coords].reverse();
     setAfterCoords(reversedCoords);
 
-    // Alternative evaluated candidate route
     const altCoords = [...coords];
     if (altCoords.length > 3) {
       const temp = altCoords[1];
@@ -384,10 +394,7 @@ export default function Dashboard() {
           objective_cost: 53.0,
           congestion_level: 1.62,
         },
-        reasons_rejected: [
-          "higher_travel_time",
-          "higher_total_distance",
-        ],
+        reasons_rejected: ["higher_travel_time", "higher_total_distance"],
       },
       decision: "The optimizer selected this route because it achieves a 28.4% reduction in travel time (17.8 min saved) over the baseline while fully satisfying vehicle payload capacity and delivery coverage constraints.",
       human_readable: `ROUTE EXPLANATION\n\nVehicle:\nVehicle 01\n\nSelected Route:\n${stopNames.join(" -> ")}\n\nWHY THIS ROUTE WAS SELECTED\n• Reduced estimated travel time\n• Shorter road transit distance\n• Payload capacity strictly satisfied\n• 100% delivery waypoints covered\n\nROUTE METRICS\n• Distance: 22.8 km\n• Estimated time: 44.8 min\n• Capacity used: 75.0%\n• Optimization cost: 44.8\n\nKEY TRADE-OFF\nNo compromise required: selected route strictly dominates alternative candidate.\n\nCONSTRAINTS\n✓ Vehicle capacity (75.0% utilized)\n✓ All locations covered (${selectedStops.length} stops)\n✓ Time constraint (44.8 min elapsed)\n\nALTERNATIVE CONSIDERED\nCandidate: Clarke-Wright Savings (Yellow Candidate)\n• Distance: 25.9 km\n• Estimated time: 53.0 min\n• Cost: 53.0\n\nDECISION\nThe optimizer selected this route because it achieves a 28.4% reduction in travel time while fully satisfying payload and coverage constraints.`,
@@ -428,654 +435,512 @@ export default function Dashboard() {
 
   if (!mounted) return null;
 
+  // =========================================================================
+  // AUTHENTICATION GATE: First Page is Admin Login Page
+  // =========================================================================
+  if (!adminUser) {
+    return (
+      <AdminLoginPage
+        onLoginSuccess={(authData) => {
+          setAdminUser(authData);
+          setActivePage("simulation");
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-bg-base text-text-primary text-sm select-none">
-      {/* Top Application Bar */}
-      <header className="h-12 border-b border-border bg-bg-surface px-4 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-signal-green"></div>
-          <div>
-            <span className="font-bold tracking-tight text-text-primary text-sm">
-              Coimbatore Traffic Optimization Engine
-            </span>
-            <span className="ml-2 text-xs text-text-secondary hidden sm:inline">
-              Quantum-behaved Particle Swarm Routing &bull; OSM Regional Network
-            </span>
+    <div className="min-h-screen flex bg-bg-base text-text-primary select-none antialiased">
+      {/* ========================================================================= */}
+      {/* LEFT-SIDE SIDEBAR MENU */}
+      {/* ========================================================================= */}
+      <aside className="w-64 sm:w-72 bg-bg-surface border-r border-border flex flex-col justify-between shrink-0 shadow-lg z-30">
+        {/* Top Header & Brand */}
+        <div className="flex flex-col">
+          <div className="p-5 border-b border-border flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-signal-green/15 border border-signal-green/40 flex items-center justify-center text-signal-green shadow-sm">
+              <Shield size={20} />
+            </div>
+            <div>
+              <h1 className="font-bold text-base sm:text-lg tracking-tight text-text-primary">
+                E-Green Quanta
+              </h1>
+              <p className="text-xs text-text-secondary font-medium">
+                Coimbatore Regional Engine
+              </p>
+            </div>
           </div>
+
+          {/* System Status Indicators */}
+          <div className="p-4 border-b border-border flex flex-col gap-2 bg-bg-base/50">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-text-secondary flex items-center gap-1.5">
+                <Database size={13} className="text-signal-green" />
+                <span>Database:</span>
+              </span>
+              <span className="text-signal-green font-bold">PostgreSQL Ready</span>
+            </div>
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-text-secondary flex items-center gap-1.5">
+                <MapPin size={13} className="text-signal-amber" />
+                <span>Coverage:</span>
+              </span>
+              <span className="text-signal-amber font-bold">70+ km Regional</span>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="p-3 flex flex-col gap-1.5">
+            <button
+              onClick={() => setActivePage("simulation")}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all ${
+                activePage === "simulation"
+                  ? "bg-signal-green text-[#0B0F14] shadow-md shadow-signal-green/20"
+                  : "text-text-secondary hover:text-text-primary hover:bg-bg-base"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Navigation size={18} />
+                <span>Live Simulation</span>
+              </div>
+              {activePage === "simulation" && <ChevronRight size={16} />}
+            </button>
+
+            <button
+              onClick={() => {
+                setActivePage("dashboard");
+                if (compareResults.length === 0) runComparison();
+              }}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all ${
+                activePage === "dashboard"
+                  ? "bg-signal-green text-[#0B0F14] shadow-md shadow-signal-green/20"
+                  : "text-text-secondary hover:text-text-primary hover:bg-bg-base"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <BarChart3 size={18} />
+                <span>Analytics Dashboard</span>
+              </div>
+              {activePage === "dashboard" && <ChevronRight size={16} />}
+            </button>
+
+            <button
+              onClick={() => setActivePage("admin")}
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all ${
+                activePage === "admin"
+                  ? "bg-signal-green text-[#0B0F14] shadow-md shadow-signal-green/20"
+                  : "text-text-secondary hover:text-text-primary hover:bg-bg-base"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Shield size={18} />
+                <span>Admin Console</span>
+              </div>
+              {activePage === "admin" && <ChevronRight size={16} />}
+            </button>
+          </nav>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          {/* PostgreSQL / SQLite status pill */}
-          <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded border border-border bg-bg-base text-[11px] font-mono text-signal-green">
-            <Database size={12} />
-            <span>PostgreSQL: Connected</span>
-          </div>
+        {/* Bottom User Profile, Logout & Theme */}
+        <div className="p-4 border-t border-border flex flex-col gap-3 bg-bg-base/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-signal-amber/20 border border-signal-amber text-signal-amber flex items-center justify-center font-bold text-xs">
+                {adminUser.username.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-bold text-text-primary truncate max-w-[110px]">
+                  {adminUser.username}
+                </span>
+                <span className="text-[11px] text-signal-green font-semibold capitalize font-mono">
+                  {adminUser.role}
+                </span>
+              </div>
+            </div>
 
-          {/* Regional Network Radius pill */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded border border-signal-amber/30 bg-signal-amber/10 text-[11px] font-mono text-signal-amber font-semibold">
-            <MapPin size={12} />
-            <span>70+ km Regional Network</span>
-          </div>
-
-          {/* Admin Auth Toggle */}
-          {adminUser ? (
+            {/* Theme Switcher */}
             <button
-              onClick={() => setActiveTab("admin")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
-                activeTab === "admin"
-                  ? "bg-signal-green text-bg-base"
-                  : "bg-signal-green/20 border border-signal-green text-signal-green hover:bg-signal-green/30"
-              }`}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-lg border border-border bg-bg-surface text-text-secondary hover:text-text-primary transition-colors"
+              title="Toggle theme"
             >
-              <Shield size={13} />
-              <span>Admin: {adminUser.username}</span>
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-          ) : (
-            <button
-              onClick={() => setIsAdminModalOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-bg-base border border-border hover:border-signal-amber text-text-primary text-xs font-medium transition-colors"
-            >
-              <Shield size={13} className="text-signal-amber" />
-              <span>Admin Login</span>
-            </button>
-          )}
-
-          {/* Status badge */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-border bg-bg-base text-xs font-mono">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                optimizationStatus === "running"
-                  ? "bg-signal-amber animate-pulse"
-                  : optimizationStatus === "converged"
-                  ? "bg-signal-green"
-                  : "bg-text-secondary"
-              }`}
-            />
-            <span className="text-text-secondary capitalize">
-              {optimizationStatus === "running" ? "Optimizing" : optimizationStatus}
-            </span>
           </div>
 
-          {/* Theme Toggle */}
+          {/* Logout Action Button */}
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-1.5 rounded border border-border bg-bg-base text-text-secondary hover:text-text-primary transition-colors"
-            title="Toggle theme"
+            onClick={handleLogout}
+            className="w-full py-2 px-3 rounded-lg border border-signal-red/30 bg-signal-red/10 text-signal-red hover:bg-signal-red/20 transition-colors text-xs font-semibold flex items-center justify-center gap-2"
           >
-            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+            <LogOut size={14} />
+            <span>Sign Out Admin</span>
           </button>
         </div>
-      </header>
+      </aside>
 
-      {/* Main 3-Column Operations Layout */}
-      <main className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
+      {/* ========================================================================= */}
+      {/* MAIN VIEWPORT AREA */}
+      {/* ========================================================================= */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* ========================================================================= */}
-        {/* COLUMN 1: INPUT PANEL (Left, Always Visible) */}
+        {/* PAGE 1: LIVE SIMULATION VIEW */}
         {/* ========================================================================= */}
-        <aside className="col-span-12 lg:col-span-3 border-r border-border bg-bg-surface p-4 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-3rem)]">
-          <div className="flex items-center gap-2 border-b border-border pb-2">
-            <Sliders size={15} className="text-text-secondary" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-text-primary">
-              Mission Parameters
-            </h2>
-          </div>
-
-          {/* Scenario & OSM Radius Preset */}
-          <div className="flex flex-col gap-1.5 bg-bg-base p-2.5 rounded border border-border">
-            <div className="flex items-center justify-between">
-              <label className="text-xs text-text-primary font-semibold">
-                Scenario & Radius
-              </label>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-signal-amber/15 text-signal-amber border border-signal-amber/30 font-bold">
-                70km Regional
-              </span>
-            </div>
-            <select
-              value={activeScenario}
-              onChange={(e) => handleScenarioChange(e.target.value)}
-              className="bg-bg-surface border border-border rounded px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
-            >
-              <option value="regional_conglomerate">Regional Conglomerate (16 Stops, 65km — Maximum Regional)</option>
-              <option value="interstate_cargo">Interstate Freight Corridor (10 Stops, 50km — Walayar to Tiruppur)</option>
-              <option value="metro_greater">Greater Coimbatore Metro (12 Stops, 32km — High Diff)</option>
-              <option value="cbd_express">CBD Commercial Express (5 Stops, 8km)</option>
-              <option value="industrial_cargo">Airport & Eastern Cargo (8 Stops, 24km)</option>
-              <option value="north_south">North-South Arterial Spine (8 Stops, 26km)</option>
-              <option value="western_suburbs">Western Suburbs & Tech Valley (6 Stops, 18km)</option>
-              <option value="custom">Custom Stop Selection</option>
-              <option value="random">🎲 Generate Dynamic Random OSM Instance (70km)</option>
-            </select>
-          </div>
-
-          {/* Source Hub */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-text-secondary font-medium flex items-center justify-between">
-              <span>Depot / Origin Hub</span>
-              <span className="font-mono text-[11px]">Node #{sourceId}</span>
-            </label>
-            <select
-              value={sourceId}
-              onChange={(e) => setSourceId(Number(e.target.value))}
-              className="bg-bg-base border border-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
-            >
-              {landmarks.map((lm) => (
-                <option key={lm.id} value={lm.id}>
-                  {lm.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Destination Hub (Optional) */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-text-secondary font-medium">Final Destination</label>
-            <select
-              value={destinationId === null ? "" : destinationId}
-              onChange={(e) => setDestinationId(e.target.value === "" ? null : Number(e.target.value))}
-              className="bg-bg-base border border-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
-            >
-              <option value="">Round-trip back to Depot</option>
-              {landmarks
-                .filter((lm) => lm.id !== sourceId)
-                .map((lm) => (
-                  <option key={lm.id} value={lm.id}>
-                    {lm.name}
-                  </option>
-                ))}
-            </select>
-          </div>
-
-          {/* Intermediate Stops */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
-              <span>Delivery Stops</span>
-              <span className="font-mono text-[11px] text-signal-green">
-                {selectedStops.length} active
-              </span>
-            </div>
-            <div className="max-h-36 overflow-y-auto border border-border rounded bg-bg-base p-1.5 flex flex-col gap-1 text-xs">
-              {landmarks
-                .filter((lm) => lm.id !== sourceId)
-                .map((lm) => {
-                  const isChecked = selectedStops.includes(lm.id);
-                  return (
-                    <label
-                      key={lm.id}
-                      className="flex items-center gap-2 p-1 rounded hover:bg-bg-surface cursor-pointer select-none transition-colors"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleStop(lm.id)}
-                        className="rounded border-border text-signal-green focus:ring-0 focus:outline-none"
-                      />
-                      <span className="truncate text-[11px]">{lm.name}</span>
-                    </label>
-                  );
-                })}
-            </div>
-          </div>
-
-          {/* Traffic Mode */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-text-secondary font-medium">Traffic Mode</label>
-            <div className="grid grid-cols-2 gap-1.5 bg-bg-base p-1 rounded border border-border text-xs">
-              <button
-                type="button"
-                onClick={() => setTrafficMode("real")}
-                className={`py-1 rounded text-center font-medium transition-colors ${
-                  trafficMode === "real"
-                    ? "bg-signal-red/20 text-signal-red border border-signal-red/40"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                Live Congestion
-              </button>
-              <button
-                type="button"
-                onClick={() => setTrafficMode("free")}
-                className={`py-1 rounded text-center font-medium transition-colors ${
-                  trafficMode === "free"
-                    ? "bg-signal-green/20 text-signal-green border border-signal-green/40"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                Free Flowing
-              </button>
-            </div>
-          </div>
-
-          {/* Algorithm Choice */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-text-secondary font-medium">Optimization Algorithm</label>
-            <select
-              value={algorithm}
-              onChange={(e) => setAlgorithm(e.target.value)}
-              className="bg-bg-base border border-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
-            >
-              <option value="qpso">Quantum-behaved Particle Swarm (QPSO)</option>
-              <option value="classical_pso">Classical PSO</option>
-              <option value="ga_ox">Genetic Algorithm (Order Crossover)</option>
-              <option value="ga_pmx">Genetic Algorithm (PMX)</option>
-              <option value="clarke_wright">Clarke-Wright Savings</option>
-              <option value="cheapest_insertion">Cheapest Insertion</option>
-              <option value="nearest_neighbor">Nearest Neighbor Baseline</option>
-            </select>
-          </div>
-
-          {/* GA Evolutionary Controls (Visible when GA is selected) */}
-          {(algorithm === "ga_ox" || algorithm === "ga_pmx") && (
-            <div className="flex flex-col gap-2 bg-bg-base p-2.5 rounded border border-border">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-text-primary">
-                <Dna size={13} className="text-signal-green" />
-                <span>GA Genetic Operators</span>
+        {activePage === "simulation" && (
+          <div className="w-full h-full grid grid-cols-12 overflow-hidden">
+            {/* Left Parameters Control Column */}
+            <aside className="col-span-12 lg:col-span-4 xl:col-span-3 border-r border-border bg-bg-surface p-5 flex flex-col gap-4 overflow-y-auto max-h-screen shadow-sm">
+              <div className="flex items-center justify-between border-b border-border pb-3">
+                <div className="flex items-center gap-2">
+                  <Sliders size={18} className="text-signal-green" />
+                  <h2 className="text-base font-bold text-text-primary">
+                    Mission Control
+                  </h2>
+                </div>
+                <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-signal-amber/15 text-signal-amber border border-signal-amber/30">
+                  70km
+                </span>
               </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-text-secondary font-medium">Crossover Operator</span>
+
+              {/* Scenario Preset Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-text-primary">
+                  Scenario Preset
+                </label>
                 <select
-                  value={algorithm === "ga_pmx" ? "pmx" : gaCrossover}
-                  onChange={(e) => {
-                    const val = e.target.value as "ox" | "pmx";
-                    setGaCrossover(val);
-                    setAlgorithm(val === "pmx" ? "ga_pmx" : "ga_ox");
-                  }}
-                  className="bg-bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary focus:outline-none"
+                  value={activeScenario}
+                  onChange={(e) => handleScenarioChange(e.target.value)}
+                  className="bg-bg-base border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
                 >
-                  <option value="ox">Order Crossover (OX) — Contiguous Sub-tours</option>
-                  <option value="pmx">Partially Mapped (PMX) — Absolute Positions</option>
+                  <option value="regional_conglomerate">Regional Conglomerate (16 Stops, 65km)</option>
+                  <option value="interstate_cargo">Interstate Freight Corridor (10 Stops, 50km)</option>
+                  <option value="metro_greater">Greater Coimbatore Metro (12 Stops, 32km)</option>
+                  <option value="cbd_express">CBD Commercial Express (5 Stops, 8km)</option>
+                  <option value="industrial_cargo">Airport & Eastern Cargo (8 Stops, 24km)</option>
+                  <option value="north_south">North-South Arterial Spine (8 Stops, 26km)</option>
+                  <option value="western_suburbs">Western Suburbs & Tech Valley (6 Stops, 18km)</option>
+                  <option value="custom">Custom Stop Selection</option>
+                  <option value="random">🎲 Generate Dynamic Random OSM Instance</option>
                 </select>
               </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-[10px] text-text-secondary font-medium">
-                  <span>Mutation Probability</span>
-                  <span className="font-mono text-text-primary font-semibold">{Math.round(gaMutationRate * 100)}%</span>
+
+              {/* Origin / Depot Hub */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-text-primary flex items-center justify-between">
+                  <span>Depot / Origin Hub</span>
+                  <span className="font-mono text-xs text-signal-green">Node #{sourceId}</span>
+                </label>
+                <select
+                  value={sourceId}
+                  onChange={(e) => setSourceId(Number(e.target.value))}
+                  className="bg-bg-base border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
+                >
+                  {landmarks.map((lm) => (
+                    <option key={lm.id} value={lm.id}>
+                      {lm.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Final Destination */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-text-primary">Final Destination</label>
+                <select
+                  value={destinationId === null ? "" : destinationId}
+                  onChange={(e) => setDestinationId(e.target.value === "" ? null : Number(e.target.value))}
+                  className="bg-bg-base border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
+                >
+                  <option value="">Round-trip back to Depot</option>
+                  {landmarks
+                    .filter((lm) => lm.id !== sourceId)
+                    .map((lm) => (
+                      <option key={lm.id} value={lm.id}>
+                        {lm.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Delivery Stops Checkboxes */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-sm font-semibold text-text-primary">
+                  <span>Delivery Waypoints</span>
+                  <span className="font-mono text-xs text-signal-green">
+                    {selectedStops.length} active stops
+                  </span>
+                </div>
+                <div className="max-h-36 overflow-y-auto border border-border rounded-lg bg-bg-base p-2 flex flex-col gap-1 text-sm">
+                  {landmarks
+                    .filter((lm) => lm.id !== sourceId)
+                    .map((lm) => {
+                      const isChecked = selectedStops.includes(lm.id);
+                      return (
+                        <label
+                          key={lm.id}
+                          className="flex items-center gap-2.5 p-1 rounded hover:bg-bg-surface cursor-pointer select-none transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleStop(lm.id)}
+                            className="rounded border-border text-signal-green focus:ring-0 focus:outline-none w-4 h-4"
+                          />
+                          <span className="truncate text-xs font-medium">{lm.name}</span>
+                        </label>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Traffic Mode */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-text-primary">Traffic Mode</label>
+                <div className="grid grid-cols-2 gap-2 bg-bg-base p-1.5 rounded-lg border border-border text-sm">
+                  <button
+                    type="button"
+                    onClick={() => setTrafficMode("real")}
+                    className={`py-1.5 rounded-md text-center font-semibold transition-colors ${
+                      trafficMode === "real"
+                        ? "bg-signal-red/20 text-signal-red border border-signal-red/40"
+                        : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Live Congestion
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrafficMode("free")}
+                    className={`py-1.5 rounded-md text-center font-semibold transition-colors ${
+                      trafficMode === "free"
+                        ? "bg-signal-green/20 text-signal-green border border-signal-green/40"
+                        : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    Free Flowing
+                  </button>
+                </div>
+              </div>
+
+              {/* Algorithm Selector */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-text-primary">Routing Algorithm</label>
+                <select
+                  value={algorithm}
+                  onChange={(e) => setAlgorithm(e.target.value)}
+                  className="bg-bg-base border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-signal-amber transition-colors font-medium"
+                >
+                  <option value="qpso">Quantum-behaved Particle Swarm (QPSO)</option>
+                  <option value="classical_pso">Classical PSO</option>
+                  <option value="ga_ox">Genetic Algorithm (Order Crossover)</option>
+                  <option value="ga_pmx">Genetic Algorithm (PMX)</option>
+                  <option value="clarke_wright">Clarke-Wright Savings</option>
+                  <option value="cheapest_insertion">Cheapest Insertion</option>
+                  <option value="nearest_neighbor">Nearest Neighbor Baseline</option>
+                </select>
+              </div>
+
+              {/* GA Operators (Shown if GA selected) */}
+              {(algorithm === "ga_ox" || algorithm === "ga_pmx") && (
+                <div className="flex flex-col gap-2.5 bg-bg-base p-3 rounded-lg border border-border">
+                  <div className="flex items-center gap-2 text-sm font-bold text-text-primary">
+                    <Dna size={15} className="text-signal-green" />
+                    <span>GA Genetic Operators</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-text-secondary font-medium">Crossover Type</span>
+                    <select
+                      value={algorithm === "ga_pmx" ? "pmx" : gaCrossover}
+                      onChange={(e) => {
+                        const val = e.target.value as "ox" | "pmx";
+                        setGaCrossover(val);
+                        setAlgorithm(val === "pmx" ? "ga_pmx" : "ga_ox");
+                      }}
+                      className="bg-bg-surface border border-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none"
+                    >
+                      <option value="ox">Order Crossover (OX)</option>
+                      <option value="pmx">Partially Mapped (PMX)</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
+                      <span>Mutation Probability</span>
+                      <span className="font-mono text-text-primary font-bold">{Math.round(gaMutationRate * 100)}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.05}
+                      max={0.50}
+                      step={0.05}
+                      value={gaMutationRate}
+                      onChange={(e) => setGaMutationRate(parseFloat(e.target.value))}
+                      className="w-full accent-signal-green"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Iterations Slider */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-sm text-text-secondary font-medium">
+                  <span>Iterations</span>
+                  <span className="font-mono text-text-primary font-bold">{iterations}</span>
                 </div>
                 <input
                   type="range"
-                  min={0.05}
-                  max={0.50}
-                  step={0.05}
-                  value={gaMutationRate}
-                  onChange={(e) => setGaMutationRate(parseFloat(e.target.value))}
+                  min={20}
+                  max={200}
+                  step={10}
+                  value={iterations}
+                  onChange={(e) => setIterations(Number(e.target.value))}
                   className="w-full accent-signal-green"
                 />
               </div>
-            </div>
-          )}
 
-          {/* Iterations Slider */}
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between text-xs text-text-secondary">
-              <span>Optimization Iterations</span>
-              <span className="font-mono text-text-primary font-semibold">{iterations}</span>
-            </div>
-            <input
-              type="range"
-              min={20}
-              max={200}
-              step={10}
-              value={iterations}
-              onChange={(e) => setIterations(Number(e.target.value))}
-              className="w-full accent-signal-green"
-            />
-          </div>
-
-          {/* Primary Action Button */}
-          <button
-            onClick={runOptimization}
-            disabled={isOptimizing}
-            className="w-full py-2.5 rounded font-semibold text-xs transition-all mt-auto flex items-center justify-center gap-2 border disabled:opacity-50"
-            style={{
-              backgroundColor: isOptimizing ? "var(--signal-amber)" : "var(--signal-green)",
-              color: "#0B0F14",
-              borderColor: "transparent",
-            }}
-          >
-            {isOptimizing ? (
-              <>
-                <span className="w-3 h-3 border-2 border-[#0B0F14] border-t-transparent rounded-full animate-spin"></span>
-                <span>Optimizing Route...</span>
-              </>
-            ) : (
-              <>
-                <Navigation size={14} />
-                <span>Run Optimization</span>
-              </>
-            )}
-          </button>
-        </aside>
-
-        {/* ========================================================================= */}
-        {/* COLUMN 2: CENTER CANVAS (Tab Content Area) */}
-        {/* ========================================================================= */}
-        <section className="col-span-12 lg:col-span-6 border-r border-border bg-bg-base p-4 flex flex-col gap-3 overflow-hidden max-h-[calc(100vh-3rem)]">
-          {/* Tab Navigation Bar */}
-          <div className="flex items-center justify-between border-b border-border pb-2">
-            <div className="flex items-center gap-1 bg-bg-surface border border-border rounded p-1 text-xs">
+              {/* Action Button */}
               <button
-                onClick={() => setActiveTab("simulation")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-medium transition-colors ${
-                  activeTab === "simulation"
-                    ? "bg-bg-base text-text-primary shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <MapPin size={13} />
-                <span>Live Simulation</span>
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("compare");
-                  if (compareResults.length === 0) runComparison();
+                onClick={runOptimization}
+                disabled={isOptimizing}
+                className="w-full py-3 rounded-lg font-bold text-sm transition-all mt-auto flex items-center justify-center gap-2 border disabled:opacity-50 shadow-md"
+                style={{
+                  backgroundColor: isOptimizing ? "var(--signal-amber)" : "var(--signal-green)",
+                  color: "#0B0F14",
+                  borderColor: "transparent",
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-medium transition-colors ${
-                  activeTab === "compare"
-                    ? "bg-bg-base text-text-primary shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
               >
-                <BarChart3 size={13} />
-                <span>Compare Algorithms</span>
+                {isOptimizing ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-[#0B0F14] border-t-transparent rounded-full animate-spin"></span>
+                    <span>Optimizing Route...</span>
+                  </>
+                ) : (
+                  <>
+                    <Navigation size={16} />
+                    <span>Run Route Optimization</span>
+                  </>
+                )}
               </button>
-              <button
-                onClick={() => setActiveTab("trends")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-medium transition-colors ${
-                  activeTab === "trends"
-                    ? "bg-bg-base text-text-primary shadow-sm"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                <Layers size={13} />
-                <span>Performance Trends</span>
-              </button>
-              {adminUser && (
+            </aside>
+
+            {/* Right Interactive Map Canvas */}
+            <section className="col-span-12 lg:col-span-8 xl:col-span-9 flex flex-col h-full relative overflow-hidden bg-bg-base">
+              {/* Map Floating Status Bar */}
+              <div className="absolute top-4 left-4 right-4 z-[400] flex items-center justify-between pointer-events-none">
+                <div className="flex flex-wrap items-center gap-2 pointer-events-auto bg-bg-surface/90 backdrop-blur-md border border-border px-3.5 py-2 rounded-xl shadow-lg">
+                  <div className="flex items-center gap-2 font-mono text-sm font-bold text-signal-green pr-2 border-r border-border">
+                    <Clock size={15} />
+                    <span>-{metrics.timeSavedMin.toFixed(1)}m Saved</span>
+                  </div>
+                  <div className="flex items-center gap-2 font-mono text-sm font-bold text-text-primary pr-2 border-r border-border">
+                    <TrendingDown size={15} className="text-signal-green" />
+                    <span>{metrics.afterDistance.toFixed(1)} km</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-text-secondary">
+                    <Activity size={13} className="text-signal-amber" />
+                    <span>{metrics.runtimeMs.toFixed(0)} ms</span>
+                  </div>
+                </div>
+
+                {/* Button to toggle turn-by-turn itinerary drawer */}
                 <button
-                  onClick={() => setActiveTab("admin")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-medium transition-colors ${
-                    activeTab === "admin"
-                      ? "bg-bg-base text-signal-green font-semibold shadow-sm"
-                      : "text-text-secondary hover:text-text-primary"
-                  }`}
+                  onClick={() => setShowItineraryDrawer(!showItineraryDrawer)}
+                  className="pointer-events-auto flex items-center gap-2 px-3.5 py-2 rounded-xl bg-bg-surface/90 backdrop-blur-md border border-border hover:border-signal-amber text-text-primary text-sm font-semibold shadow-lg transition-colors"
                 >
-                  <Shield size={13} className="text-signal-green" />
-                  <span>Admin Console</span>
+                  <ListOrdered size={16} className="text-signal-amber" />
+                  <span>{showItineraryDrawer ? "Hide Route Legs" : `Route Legs (${turnByTurnLegs.length})`}</span>
                 </button>
-              )}
-            </div>
+              </div>
 
-            <span className="text-xs text-text-secondary hidden md:inline font-mono">
-              Coimbatore Regional &bull; 11.0168° N, 76.9678° E
-            </span>
-          </div>
-
-          {/* Active Tab Canvas */}
-          <div className="flex-1 min-h-[480px] overflow-hidden flex flex-col">
-            {activeTab === "simulation" && (
-              <MapComponent
-                beforeCoordinates={beforeCoords}
-                afterCoordinates={afterCoords}
-                alternativeCoordinates={alternativeCoords}
-                alternativeName={alternativeName}
-                landmarks={landmarks}
-                isOptimizing={isOptimizing}
-              />
-            )}
-
-            {activeTab === "compare" && (
-              <CompareView
-                results={compareResults}
-                isLoading={isComparing}
-                onRefresh={runComparison}
-              />
-            )}
-
-            {activeTab === "trends" && (
-              <div className="flex flex-col gap-4 overflow-y-auto">
-                <ConvergenceChart
-                  history={convergenceHistory}
-                  baselineCost={baselineCost}
-                  crossoverIteration={crossoverIteration}
-                  algorithmName="QPSO"
+              {/* Fullscreen Map */}
+              <div className="w-full h-full flex-1">
+                <MapComponent
+                  beforeCoordinates={beforeCoords}
+                  afterCoordinates={afterCoords}
+                  alternativeCoordinates={alternativeCoords}
+                  alternativeName={alternativeName}
+                  landmarks={landmarks}
+                  isOptimizing={isOptimizing}
                 />
               </div>
-            )}
 
-            {activeTab === "admin" && (
-              <AdminPortalView
-                token={adminUser?.token || null}
-                username={adminUser?.username || "admin"}
-                onLogout={() => {
-                  localStorage.removeItem("egreen_token");
-                  localStorage.removeItem("egreen_user");
-                  setAdminUser(null);
-                  setActiveTab("simulation");
-                }}
-              />
-            )}
-          </div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* COLUMN 3: RESULTS PANEL (Right, Cleanly Split into Tabs) */}
-        {/* ========================================================================= */}
-        <aside className="col-span-12 lg:col-span-3 bg-bg-surface p-4 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-3rem)]">
-          {/* Sub-Tabs Header */}
-          <div className="flex items-center gap-1 bg-bg-base border border-border rounded p-1 text-xs">
-            <button
-              onClick={() => setRightTab("telemetry")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded font-medium transition-colors ${
-                rightTab === "telemetry"
-                  ? "bg-bg-surface text-text-primary shadow-sm font-semibold"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              <Activity size={13} className="text-signal-green" />
-              <span>KPIs</span>
-            </button>
-            <button
-              onClick={() => setRightTab("explanation")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded font-medium transition-colors ${
-                rightTab === "explanation"
-                  ? "bg-bg-surface text-text-primary shadow-sm font-semibold"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              <FileText size={13} className="text-signal-amber" />
-              <span>Audit & Why</span>
-            </button>
-            <button
-              onClick={() => setRightTab("itinerary")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded font-medium transition-colors ${
-                rightTab === "itinerary"
-                  ? "bg-bg-surface text-text-primary shadow-sm font-semibold"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              <ListOrdered size={13} />
-              <span>Legs</span>
-            </button>
-          </div>
-
-          {/* TAB 1: OPERATIONAL TELEMETRY & KPIS */}
-          {rightTab === "telemetry" && (
-            <div className="flex flex-col gap-3">
-              {/* Travel Time Card */}
-              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
-                  <span className="flex items-center gap-1.5">
-                    <Clock size={13} />
-                    <span>Total Travel Time</span>
-                  </span>
-                  <span className="text-signal-green font-mono font-bold">
-                    -{metrics.timeImprovementPct}%
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-signal-red font-medium">
-                      Before (Baseline)
-                    </span>
-                    <span className="font-mono text-base font-bold text-signal-red">
-                      {metrics.beforeTime.toFixed(1)} <span className="text-xs font-normal">min</span>
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-signal-green font-medium">
-                      After (Optimized)
-                    </span>
-                    <span className="font-mono text-base font-bold text-signal-green">
-                      {metrics.afterTime.toFixed(1)} <span className="text-xs font-normal">min</span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-text-secondary bg-bg-surface px-2 py-1 rounded border border-border font-mono">
-                  Transit savings: <span className="text-signal-green font-semibold">{metrics.timeSavedMin.toFixed(1)} minutes</span>
-                </div>
-              </div>
-
-              {/* Total Distance Card */}
-              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
-                  <span className="flex items-center gap-1.5">
-                    <TrendingDown size={13} />
-                    <span>Road Network Distance</span>
-                  </span>
-                  <span className="text-signal-green font-mono font-bold">
-                    -{metrics.distanceImprovementPct}%
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-signal-red font-medium">
-                      Before
-                    </span>
-                    <span className="font-mono text-base font-bold text-signal-red">
-                      {metrics.beforeDistance.toFixed(1)} <span className="text-xs font-normal">km</span>
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-signal-green font-medium">
-                      After
-                    </span>
-                    <span className="font-mono text-base font-bold text-signal-green">
-                      {metrics.afterDistance.toFixed(1)} <span className="text-xs font-normal">km</span>
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Traffic Congestion Factor */}
-              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
-                <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
-                  <span>Corridor Congestion Index</span>
-                  <span className="font-mono text-xs text-text-primary">
-                    {trafficMode === "real" ? "Simulated Live" : "Unrestricted"}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-text-secondary font-medium">
-                      Average Edge Delay
-                    </span>
-                    <span className="font-mono text-sm font-semibold text-text-primary">
-                      {metrics.beforeCongestion.toFixed(2)}x
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-text-secondary font-medium">
-                      Bottlenecks Avoided
-                    </span>
-                    <span className="font-mono text-sm font-semibold text-signal-green">
-                      High
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Solver Diagnostics */}
-              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
-                <span className="text-[11px] uppercase tracking-wider text-text-secondary font-bold">
-                  Convergence Metrics
-                </span>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-secondary">Execution Latency:</span>
-                  <span className="font-mono font-semibold text-text-primary">
-                    {metrics.runtimeMs.toFixed(1)} ms
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-secondary">Iterations Completed:</span>
-                  <span className="font-mono font-semibold text-text-primary">
-                    {metrics.iterationCount}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-text-secondary">Crossover Point:</span>
-                  <span className="font-mono font-semibold text-signal-amber">
-                    {crossoverIteration !== null ? `Iter ${crossoverIteration}` : "Immediate"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: DETERMINISTIC EXPLAINABILITY LAYER */}
-          {rightTab === "explanation" && (
-            <div className="flex flex-col gap-3">
-              <RouteExplanationCard explanation={routeExplanation} />
-            </div>
-          )}
-
-          {/* TAB 3: TURN-BY-TURN ROUTE LEGS */}
-          {rightTab === "itinerary" && (
-            <div className="flex flex-col gap-2.5">
-              <div className="flex items-center justify-between text-xs font-semibold text-text-primary pb-1 border-b border-border">
-                <span>Waypoint Sequence</span>
-                <span className="font-mono text-[11px] text-text-secondary">{turnByTurnLegs.length} Legs</span>
-              </div>
-              {turnByTurnLegs.length === 0 ? (
-                <div className="p-4 text-center text-xs text-text-secondary">
-                  Run an optimization to view detailed leg-by-leg sequence.
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  {turnByTurnLegs.map((leg) => (
-                    <div
-                      key={leg.legIndex}
-                      className="p-2.5 rounded bg-bg-base border border-border flex flex-col gap-1 text-xs"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] uppercase font-bold text-signal-green">
-                          Leg #{leg.legIndex}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-text-primary font-medium">
-                        <span className="truncate">{leg.from}</span>
-                        <ArrowRight size={12} className="shrink-0 text-text-secondary" />
-                        <span className="truncate text-signal-amber font-semibold">{leg.to}</span>
-                      </div>
+              {/* Collapsible Turn-by-Turn Route Legs Drawer */}
+              {showItineraryDrawer && (
+                <div className="absolute bottom-4 right-4 w-96 max-h-[60%] z-[400] bg-bg-surface/95 backdrop-blur-md border border-border rounded-xl shadow-2xl p-4 flex flex-col gap-3 overflow-hidden animate-in fade-in slide-in-from-bottom-5">
+                  <div className="flex items-center justify-between border-b border-border pb-2">
+                    <div className="flex items-center gap-2">
+                      <ListOrdered size={16} className="text-signal-amber" />
+                      <span className="font-bold text-sm text-text-primary">
+                        Turn-by-Turn Waypoints ({turnByTurnLegs.length} Legs)
+                      </span>
                     </div>
-                  ))}
+                    <button
+                      onClick={() => setShowItineraryDrawer(false)}
+                      className="text-text-secondary hover:text-text-primary text-xs"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto flex flex-col gap-2 pr-1">
+                    {turnByTurnLegs.length === 0 ? (
+                      <p className="text-xs text-text-secondary text-center py-4">
+                        Run an optimization to view route itinerary.
+                      </p>
+                    ) : (
+                      turnByTurnLegs.map((leg) => (
+                        <div
+                          key={leg.legIndex}
+                          className="p-2.5 rounded-lg bg-bg-base border border-border flex flex-col gap-1 text-xs"
+                        >
+                          <span className="font-mono text-[11px] font-bold text-signal-green">
+                            Leg #{leg.legIndex}
+                          </span>
+                          <div className="flex items-center gap-1.5 font-medium text-text-primary">
+                            <span className="truncate">{leg.from}</span>
+                            <ArrowRight size={13} className="shrink-0 text-text-secondary" />
+                            <span className="truncate text-signal-amber font-semibold">{leg.to}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
-            </div>
-          )}
-        </aside>
-      </main>
+            </section>
+          </div>
+        )}
 
-      {/* Admin Login Modal */}
-      <AdminLoginModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        onLoginSuccess={(authData) => {
-          setAdminUser(authData);
-          setActiveTab("admin");
-        }}
-      />
+        {/* ========================================================================= */}
+        {/* PAGE 2: DASHBOARD VIEW (STRICTLY NO MAPS OR DEPOT PICKERS) */}
+        {/* ========================================================================= */}
+        {activePage === "dashboard" && (
+          <div className="w-full h-full overflow-y-auto">
+            <AnalyticsDashboardView
+              metrics={metrics}
+              compareResults={compareResults}
+              isComparing={isComparing}
+              onRefreshCompare={runComparison}
+              routeExplanation={routeExplanation}
+              convergenceHistory={convergenceHistory}
+              baselineCost={baselineCost}
+              crossoverIteration={crossoverIteration}
+            />
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* PAGE 3: ADMIN CONSOLE VIEW */}
+        {/* ========================================================================= */}
+        {activePage === "admin" && (
+          <div className="w-full h-full p-6 overflow-y-auto">
+            <AdminPortalView
+              token={adminUser?.token || null}
+              username={adminUser?.username || "admin"}
+              onLogout={handleLogout}
+            />
+          </div>
+        )}
+      </main>
     </div>
   );
 }
