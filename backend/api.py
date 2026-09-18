@@ -9,12 +9,26 @@ import asyncio
 from typing import List, Optional
 import numpy as np
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+# Database and Security
+from database import get_db, init_db, get_db_status, SessionLocal
+from models import User, OptimizationLog
+from auth import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    get_current_user,
+    require_admin,
+    seed_default_admin,
+)
 
 # Core engine imports
 from osm_road_network import (
     COIMBATORE_LANDMARKS,
+    COIMBATORE_ROAD_SEGMENTS,
     BENCHMARK_SCENARIOS,
     build_coimbatore_graph,
     get_route_geometry,
@@ -34,6 +48,16 @@ app = FastAPI(
     version="2.0.0",
 )
 
+@app.on_event("startup")
+def on_startup():
+    """Initializes database schema and ensures default admin user is seeded."""
+    init_db()
+    db = SessionLocal()
+    try:
+        seed_default_admin(db)
+    finally:
+        db.close()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -41,6 +65,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(..., description="Administrator username")
+    password: str = Field(..., description="Administrator password")
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    username: str
+    role: str
 
 
 class OptimizeRequest(BaseModel):
@@ -52,6 +88,8 @@ class OptimizeRequest(BaseModel):
     swarm_size: int = Field(30, ge=10, le=100)
     iterations: int = Field(80, ge=20, le=250)
     seed: Optional[int] = Field(42, description="Random seed for traffic & solver reproducibility")
+    ga_crossover: Optional[str] = Field("ox", description="GA crossover operator: 'ox' or 'pmx'")
+    ga_mutation_rate: Optional[float] = Field(0.15, ge=0.01, le=0.9, description="GA mutation probability")
 
 
 class ExplainRequest(BaseModel):
@@ -188,16 +226,34 @@ def get_algorithms():
     ]
 
 
-def _run_solver(algo: str, G, depot: int, waypoints: List[int], swarm_size: int, iterations: int, seed: int):
+def _run_solver(
+    algo: str,
+    G,
+    depot: int,
+    waypoints: List[int],
+    swarm_size: int,
+    iterations: int,
+    seed: int,
+    ga_crossover: str = "ox",
+    ga_mutation_rate: float = 0.15,
+):
     """Executes the specified optimization solver."""
     if algo == "qpso":
         return qpso_optimize(G, depot, waypoints, n_particles=swarm_size, n_iterations=iterations, seed=seed)
     elif algo == "classical_pso":
         return classical_pso_optimize(G, depot, waypoints, n_particles=swarm_size, n_iterations=iterations, seed=seed)
-    elif algo == "ga_ox":
-        return ga_optimize(G, depot, waypoints, crossover="ox", pop_size=swarm_size, n_generations=iterations, seed=seed)
-    elif algo == "ga_pmx":
-        return ga_optimize(G, depot, waypoints, crossover="pmx", pop_size=swarm_size, n_generations=iterations, seed=seed)
+    elif algo in ("ga", "ga_ox", "ga_pmx"):
+        cx = "pmx" if (algo == "ga_pmx" or (algo == "ga" and ga_crossover.lower() == "pmx")) else "ox"
+        return ga_optimize(
+            G,
+            depot,
+            waypoints,
+            crossover=cx,
+            pop_size=swarm_size,
+            n_generations=iterations,
+            mutation_rate=ga_mutation_rate,
+            seed=seed,
+        )
     elif algo == "clarke_wright":
         route, cost, rt = clarke_wright_route(G, depot, waypoints)
         return {"route": route, "cost": cost, "history": [cost] * (iterations + 1), "runtime": rt}
@@ -237,8 +293,15 @@ def optimize_route(req: OptimizeRequest):
 
     # 2. Optimized Route
     opt_result = _run_solver(
-        req.algorithm, G, req.source_id, waypoints,
-        swarm_size=req.swarm_size, iterations=req.iterations, seed=req.seed
+        req.algorithm,
+        G,
+        req.source_id,
+        waypoints,
+        swarm_size=req.swarm_size,
+        iterations=req.iterations,
+        seed=req.seed,
+        ga_crossover=req.ga_crossover or "ox",
+        ga_mutation_rate=req.ga_mutation_rate or 0.15,
     )
     raw_opt_nodes = opt_result["route"]
     if req.destination_id and req.destination_id in COIMBATORE_LANDMARKS:
@@ -317,7 +380,7 @@ def optimize_route(req: OptimizeRequest):
         algorithm_name=req.algorithm.upper(),
     )
 
-    return {
+    response_payload = {
         "algorithm": req.algorithm,
         "traffic_mode": req.traffic_mode,
         "baseline_cost": baseline_cost,
@@ -361,6 +424,113 @@ def optimize_route(req: OptimizeRequest):
         },
         "explanation": explanation,
         "landmarks": [COIMBATORE_LANDMARKS[n] for n in [req.source_id] + waypoints],
+    }
+
+    # Persist optimization run to Database (PostgreSQL / SQLite fallback)
+    try:
+        db = SessionLocal()
+        time_saved = max(0.0, round(before_geom["total_time_min"] - after_geom["total_time_min"], 1))
+        summary = ""
+        if isinstance(explanation, dict) and "human_readable" in explanation:
+            summary = explanation["human_readable"][:300]
+
+        log_record = OptimizationLog(
+            scenario_name=f"{len(waypoints)} Waypoints Route",
+            algorithm=req.algorithm.upper(),
+            traffic_mode=req.traffic_mode,
+            n_stops=len(waypoints),
+            total_distance_km=after_geom["total_distance_km"],
+            total_time_min=after_geom["total_time_min"],
+            time_saved_min=time_saved,
+            crossover_iteration=crossover_idx,
+            runtime_ms=round(opt_result["runtime"] * 1000, 2),
+            summary_text=summary,
+        )
+        db.add(log_record)
+        db.commit()
+        db.close()
+    except Exception:
+        pass  # Non-blocking async telemetry
+
+    return response_payload
+
+
+@app.post("/api/auth/login", response_model=TokenResponse)
+def login(req: LoginRequest, db: Session = Depends(get_db)):
+    """Authenticates administrator/dispatcher and returns JWT bearer token."""
+    user = db.query(User).filter(User.username == req.username).first()
+    if not user or not verify_password(req.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid administrator username or password")
+    token = create_access_token(data={"sub": user.username, "role": user.role})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "username": user.username,
+        "role": user.role,
+    }
+
+
+@app.get("/api/auth/me")
+def get_me(current_user: Optional[User] = Depends(get_current_user)):
+    """Returns currently authenticated user profile."""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email,
+        "role": current_user.role,
+        "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+    }
+
+
+@app.get("/api/admin/logs")
+def get_admin_logs(db: Session = Depends(get_db)):
+    """Returns optimization audit history persisted in PostgreSQL / SQLite."""
+    logs = db.query(OptimizationLog).order_by(OptimizationLog.created_at.desc()).limit(50).all()
+    return [
+        {
+            "id": l.id,
+            "scenario_name": l.scenario_name,
+            "algorithm": l.algorithm,
+            "traffic_mode": l.traffic_mode,
+            "n_stops": l.n_stops,
+            "total_distance_km": l.total_distance_km,
+            "total_time_min": l.total_time_min,
+            "time_saved_min": l.time_saved_min,
+            "crossover_iteration": l.crossover_iteration,
+            "runtime_ms": l.runtime_ms,
+            "created_at": l.created_at.strftime("%Y-%m-%d %H:%M:%S") if l.created_at else "",
+        }
+        for l in logs
+    ]
+
+
+@app.delete("/api/admin/logs")
+def clear_admin_logs(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Clears all historical optimization audit logs. Requires Admin privileges."""
+    deleted_count = db.query(OptimizationLog).delete()
+    db.commit()
+    return {"status": "cleared", "deleted_count": deleted_count}
+
+
+@app.get("/api/admin/system")
+def get_system_status():
+    """Returns system status, active database backend, and regional network coverage."""
+    return {
+        "database": get_db_status(),
+        "landmarks_count": len(COIMBATORE_LANDMARKS),
+        "road_segments_count": len(COIMBATORE_ROAD_SEGMENTS),
+        "radius_coverage_km": "70+ km Regional Scale",
+        "supported_algorithms": [
+            "QPSO",
+            "Classical PSO",
+            "GA (OX)",
+            "GA (PMX)",
+            "Clarke-Wright Savings",
+            "Cheapest Insertion",
+            "Nearest Neighbor",
+        ],
     }
 
 

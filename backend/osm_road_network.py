@@ -48,6 +48,19 @@ COIMBATORE_LANDMARKS = {
     21: {"id": 21, "name": "CHIL SEZ (Keeranatham)", "lat": 11.0995, "lon": 77.0085, "desc": "Major Global IT Campus & Tech Park"},
     22: {"id": 22, "name": "Thudiyalur Junction", "lat": 11.0815, "lon": 76.9580, "desc": "Mettupalayam Highway (NH-181) Commercial Hub"},
     23: {"id": 23, "name": "Vadavalli Gateway", "lat": 11.0260, "lon": 76.9045, "desc": "Western Marudhamalai Foothills Arterial Link"},
+    # Expanded Regional Logistics Corridor (50–70+ km Regional Radius)
+    24: {"id": 24, "name": "Pollachi Logistics Terminal", "lat": 10.6609, "lon": 77.0048, "desc": "Southern Tier-2 Agro-Industrial & Kerala Gateway Hub (~42 km)"},
+    25: {"id": 25, "name": "Kinathukadavu Industrial Bypass", "lat": 10.8214, "lon": 77.0201, "desc": "NH-83 Southern Manufacturing & Rail Bypass (~25 km)"},
+    26: {"id": 26, "name": "Madukkarai Cement Corridor", "lat": 10.9020, "lon": 76.9580, "desc": "Heavy Minerals & Southern NH-544 Bypass Interchange (~18 km)"},
+    27: {"id": 27, "name": "Walayar Interstate Border Post", "lat": 10.8520, "lon": 76.8550, "desc": "Tamil Nadu-Kerala Commercial Interstate Freight Gate (~28 km)"},
+    28: {"id": 28, "name": "Siruvani Eco Valley (Alandurai)", "lat": 10.9410, "lon": 76.7950, "desc": "South-Western Western Ghats Foothills & Water Basin (~30 km)"},
+    29: {"id": 29, "name": "Karamadai Agro Wholesale Market", "lat": 11.2435, "lon": 76.9582, "desc": "Northern Produce Exchange & NH-181 Freight Station (~28 km)"},
+    30: {"id": 30, "name": "Mettupalayam Nilgiris Gateway", "lat": 11.3015, "lon": 76.9465, "desc": "Northern Mountain Freight Terminal & Rail Interchange (~36 km)"},
+    31: {"id": 31, "name": "Annur Highway Junction", "lat": 11.2335, "lon": 77.1332, "desc": "North-Eastern Expressway Cross-Link & Powerloom Cluster (~32 km)"},
+    32: {"id": 32, "name": "Karumathampatti Logistics Park", "lat": 11.1090, "lon": 77.1820, "desc": "Major 6-Lane NH-544 Central Warehouse & Distribution Terminal (~30 km)"},
+    33: {"id": 33, "name": "Avinashi Industrial & Textile Hub", "lat": 11.1925, "lon": 77.2690, "desc": "Far North-Eastern National Expressway Freight Interchange (~42 km)"},
+    34: {"id": 34, "name": "Tiruppur Border (Perumanallur)", "lat": 11.1780, "lon": 77.3340, "desc": "Global Export Apparel & Eastbound Freight Gateway (~48 km)"},
+    35: {"id": 35, "name": "Palladam Freight Interchange", "lat": 11.0045, "lon": 77.2885, "desc": "South-Eastern Multi-Arterial Logistics & Poultry Exchange (~38 km)"},
 }
 
 # Real arterial road segments connecting landmarks (bidirectional edges with road names & speed limits)
@@ -103,6 +116,29 @@ COIMBATORE_ROAD_SEGMENTS = [
     (9, 23, {"road": "Edayarpalayam-Vadavalli Road", "speed_kmh": 40}),
     (23, 22, {"road": "Vadavalli-Thudiyalur Western Ring", "speed_kmh": 50}),
     (23, 13, {"road": "Perur-Kuniyamuthur Western Bypass", "speed_kmh": 45}),
+
+    # Regional Corridors: South & Interstate West (~70 km scale)
+    (15, 26, {"road": "NH-544 / Coimbatore Industrial Bypass", "speed_kmh": 65}),
+    (26, 27, {"road": "NH-544 4-Lane Express (Walayar Border)", "speed_kmh": 75}),
+    (15, 25, {"road": "NH-83 4-Lane to Kinathukadavu", "speed_kmh": 70}),
+    (25, 24, {"road": "NH-83 Expressway to Pollachi Terminal", "speed_kmh": 75}),
+    (12, 28, {"road": "Kovaipudur-Alandurai Foothills Link", "speed_kmh": 50}),
+    (23, 28, {"road": "Thondamuthur-Siruvani Main Road", "speed_kmh": 50}),
+
+    # Regional Corridors: North Nilgiris Expressway
+    (22, 29, {"road": "NH-181 4-Lane to Karamadai Agro Market", "speed_kmh": 65}),
+    (29, 30, {"road": "NH-181 Express to Mettupalayam Nilgiris Hub", "speed_kmh": 70}),
+
+    # Regional Corridors: North-East & East Expressways (NH-544 6-Lane & State Highways)
+    (21, 31, {"road": "SH-80 Express to Annur Highway Junction", "speed_kmh": 60}),
+    (30, 31, {"road": "Mettupalayam-Annur State Highway", "speed_kmh": 65}),
+    (31, 33, {"road": "Annur-Avinashi Connector Road", "speed_kmh": 65}),
+    (19, 32, {"road": "NH-544 6-Lane to Karumathampatti Logistics Park", "speed_kmh": 80}),
+    (32, 33, {"road": "NH-544 6-Lane to Avinashi Industrial Hub", "speed_kmh": 80}),
+    (33, 34, {"road": "NH-544 / Perumanallur Tiruppur Freight Corridor", "speed_kmh": 75}),
+    (18, 35, {"road": "NH-81 Trichy Corridor to Palladam Freight Interchange", "speed_kmh": 70}),
+    (32, 35, {"road": "SH-166 Karumathampatti-Palladam Bypass", "speed_kmh": 65}),
+    (24, 35, {"road": "SH-19 Pollachi-Palladam Regional Express", "speed_kmh": 70}),
 ]
 
 BENCHMARK_SCENARIOS = {
@@ -113,10 +149,22 @@ BENCHMARK_SCENARIOS = {
         "stops": [1, 3, 4, 9, 10],
     },
     "metro_greater": {
-        "name": "Greater Coimbatore Metro (12 Stops, ~32 km — High Differentiation)",
-        "desc": "Wide 30km metropolitan logistics circuit spanning North, South, East, and West hubs.",
+        "name": "Greater Coimbatore Metro (12 Stops, ~32 km)",
+        "desc": "Wide 32km metropolitan logistics circuit spanning North, South, East, and West hubs.",
         "source_id": 0,
         "stops": [1, 2, 6, 7, 11, 14, 15, 18, 19, 21, 22, 23],
+    },
+    "regional_conglomerate": {
+        "name": "Regional Conglomerate (16 Stops, ~65 km — Maximum Scale)",
+        "desc": "Cross-district regional supply chain spanning Pollachi, Mettupalayam, Avinashi, and Walayar.",
+        "source_id": 0,
+        "stops": [1, 6, 11, 15, 18, 19, 21, 24, 25, 27, 28, 29, 30, 32, 33, 34],
+    },
+    "interstate_cargo": {
+        "name": "Interstate Freight Corridor (10 Stops, ~50 km)",
+        "desc": "National highway freight transit connecting Walayar Kerala Border to Tiruppur Export Hub.",
+        "source_id": 0,
+        "stops": [2, 6, 15, 18, 19, 26, 27, 32, 33, 34],
     },
     "industrial_cargo": {
         "name": "Airport & Eastern Industrial Cargo (8 Stops, ~24 km)",

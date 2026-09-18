@@ -163,6 +163,13 @@ export default function ConvergenceChart({
             Iter {history.length - 1}
           </text>
 
+          <defs>
+            <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2ECC71" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#2ECC71" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
           {/* 1. Flat Reference Line in Red (Baseline Cost) */}
           <line
             x1={padding.left}
@@ -181,19 +188,34 @@ export default function ConvergenceChart({
             Baseline ({baselineCost.toFixed(1)})
           </text>
 
+          {/* Area Fill beneath Convergence Curve */}
+          <path
+            d={`${pathD} L ${lastX},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`}
+            fill="url(#curveGradient)"
+          />
+
           {/* 2. Convergence Curve in Green */}
           <path
             d={pathD}
             fill="none"
             stroke="#2ECC71"
-            strokeWidth="2.5"
+            strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
+            className="transition-all duration-500 ease-out"
           />
 
           {/* 3. Crossover Point ("The moment QPSO beat the baseline") */}
           {crossoverX !== null && crossoverY !== null && (
             <g>
+              {/* Radar pulse animation ring */}
+              <circle
+                cx={crossoverX}
+                cy={crossoverY}
+                r="10"
+                fill="#F5A623"
+                className="animate-ping opacity-60"
+              />
               <circle
                 cx={crossoverX}
                 cy={crossoverY}
@@ -233,6 +255,13 @@ export default function ConvergenceChart({
           )}
 
           {/* 4. Final Converged Value Point & Annotation */}
+          <circle
+            cx={lastX}
+            cy={lastY}
+            r="10"
+            fill="#2ECC71"
+            className="animate-pulse opacity-40"
+          />
           <circle
             cx={lastX}
             cy={lastY}

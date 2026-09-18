@@ -3,8 +3,8 @@ graphhopper_client.py — OpenStreetMap (OSM) & GraphHopper Instance Generator.
 Provides:
 1. Turn-by-turn distance and travel time matrix extraction via GraphHopper API.
 2. High-fidelity OpenStreetMap (OSM) metric closure fallback.
-3. Realistic dynamic instance generation across arbitrary radius (5 km to 35 km)
-   in the Coimbatore metropolitan road network with real GPS coordinates and demands.
+3. Realistic dynamic instance generation across arbitrary radius (5 km to 75+ km)
+   in the Greater Coimbatore & regional logistics network with real GPS coordinates and demands.
 """
 
 import os

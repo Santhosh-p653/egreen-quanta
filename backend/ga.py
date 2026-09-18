@@ -101,10 +101,16 @@ def ga_optimize(
 
             child = cx_fn(p1, p2, rng)
 
-            # Swap mutation
+            # Combined Inversion & Swap Mutation for routing permutations
             if rng.uniform(0, 1) < mutation_rate:
-                i1, i2 = rng.choice(n_dim, size=2, replace=False)
-                child[i1], child[i2] = child[i2], child[i1]
+                if n_dim >= 3 and rng.uniform(0, 1) < 0.5:
+                    # Inversion mutation (reverses a contiguous segment)
+                    i1, i2 = sorted(rng.choice(n_dim, size=2, replace=False))
+                    child[i1:i2 + 1] = list(reversed(child[i1:i2 + 1]))
+                else:
+                    # Swap mutation
+                    i1, i2 = rng.choice(n_dim, size=2, replace=False)
+                    child[i1], child[i2] = child[i2], child[i1]
 
             new_pop.append(child)
 

@@ -35,8 +35,10 @@ export default function MapComponent({
   const alternativePolylineRef = useRef<L.Polyline | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
 
+  const vehicleMarkerRef = useRef<L.Marker | null>(null);
+  const animationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [viewMode, setViewMode] = useState<"all" | "optimal" | "alternative" | "baseline">("all");
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isVehicleTracing, setIsVehicleTracing] = useState(true);
 
   // Initialize Map
   useEffect(() => {
@@ -44,7 +46,7 @@ export default function MapComponent({
 
     const map = L.map(mapContainerRef.current, {
       center: [11.0168, 76.9678], // Coimbatore Center
-      zoom: 12,
+      zoom: 11,
       zoomControl: true,
       attributionControl: false,
     });
@@ -57,6 +59,7 @@ export default function MapComponent({
     mapInstanceRef.current = map;
 
     return () => {
+      if (animationTimerRef.current) clearInterval(animationTimerRef.current);
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -71,6 +74,14 @@ export default function MapComponent({
     if (beforePolylineRef.current) map.removeLayer(beforePolylineRef.current);
     if (afterPolylineRef.current) map.removeLayer(afterPolylineRef.current);
     if (alternativePolylineRef.current) map.removeLayer(alternativePolylineRef.current);
+    if (vehicleMarkerRef.current) {
+      map.removeLayer(vehicleMarkerRef.current);
+      vehicleMarkerRef.current = null;
+    }
+    if (animationTimerRef.current) {
+      clearInterval(animationTimerRef.current);
+      animationTimerRef.current = null;
+    }
 
     // 1. Before Route (Red, dashed line)
     if (beforeCoordinates.length > 1 && (viewMode === "all" || viewMode === "baseline")) {
@@ -80,6 +91,7 @@ export default function MapComponent({
         dashArray: "8, 8",
         opacity: viewMode === "all" ? 0.7 : 0.95,
         lineJoin: "round",
+        className: "leaflet-route-baseline",
       }).addTo(map);
       beforePolylineRef.current = beforeLine;
     }
@@ -92,6 +104,7 @@ export default function MapComponent({
         dashArray: "4, 6",
         opacity: viewMode === "all" ? 0.85 : 0.95,
         lineJoin: "round",
+        className: "leaflet-route-alternative",
       }).addTo(map);
       alternativePolylineRef.current = altLine;
     }
@@ -103,11 +116,47 @@ export default function MapComponent({
         weight: 5,
         opacity: 0.95,
         lineJoin: "round",
+        className: "leaflet-route-optimal",
       }).addTo(map);
       afterPolylineRef.current = afterLine;
+
+      // 4. Moving Dispatch Vehicle Animation Tracer
+      if (isVehicleTracing && afterCoordinates.length > 1) {
+        const vehicleIcon = L.divIcon({
+          html: `<div style="background:#2ECC71; border:2px solid #FFFFFF; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 12px #2ECC71, 0 2px 6px rgba(0,0,0,0.4); font-size:14px; animation:pulse 1.5s infinite;">🚛</div>`,
+          className: "dispatch-tracer-icon",
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+
+        const startPt = afterCoordinates[0];
+        const vMarker = L.marker(startPt, { icon: vehicleIcon, zIndexOffset: 2000 }).addTo(map);
+        vehicleMarkerRef.current = vMarker;
+
+        let coordIdx = 0;
+        let subStep = 0;
+        const subDivisions = 8; // Interpolate for smooth animation
+
+        animationTimerRef.current = setInterval(() => {
+          if (!afterCoordinates || afterCoordinates.length <= 1) return;
+          const fromPt = afterCoordinates[coordIdx];
+          const toPt = afterCoordinates[(coordIdx + 1) % afterCoordinates.length];
+
+          const lat = fromPt[0] + ((toPt[0] - fromPt[0]) * subStep) / subDivisions;
+          const lon = fromPt[1] + ((toPt[1] - fromPt[1]) * subStep) / subDivisions;
+
+          vMarker.setLatLng([lat, lon]);
+
+          subStep++;
+          if (subStep >= subDivisions) {
+            subStep = 0;
+            coordIdx = (coordIdx + 1) % afterCoordinates.length;
+          }
+        }, 80);
+      }
     }
 
-    // 3. Render Landmark Markers
+    // 5. Render Landmark Markers
     if (markersLayerRef.current) {
       markersLayerRef.current.clearLayers();
 
@@ -128,7 +177,7 @@ export default function MapComponent({
         marker.bindPopup(
           `<div style="font-family:inherit; padding:4px;">
             <strong style="font-size:13px;">${lm.name}</strong>
-            <p style="margin:4px 0 0 0; font-size:11px; opacity:0.8;">${lm.desc || "Delivery Waypoint"}</p>
+            <p style="margin:4px 0 0 0; font-size:11px; opacity:0.8;">${lm.desc || "Regional Delivery Waypoint"}</p>
             <p style="margin:2px 0 0 0; font-family:monospace; font-size:10px; opacity:0.6;">[${lm.lat.toFixed(4)}, ${lm.lon.toFixed(4)}]</p>
           </div>`
         );
@@ -136,15 +185,16 @@ export default function MapComponent({
       });
     }
 
-    // Auto-fit bounds
+    // Auto-fit bounds with smooth camera fly-to
     const allCoords = [...beforeCoordinates, ...afterCoordinates, ...alternativeCoordinates];
     if (allCoords.length > 1) {
       const bounds = L.latLngBounds(allCoords);
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+      map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 13, duration: 1.2 });
     }
-  }, [beforeCoordinates, afterCoordinates, alternativeCoordinates, landmarks, viewMode]);
+  }, [beforeCoordinates, afterCoordinates, alternativeCoordinates, landmarks, viewMode, isVehicleTracing]);
 
   // Handle Morph / Transition Animation
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const handleTransition = () => {
     setIsTransitioning(true);
     setViewMode("baseline");
@@ -164,7 +214,19 @@ export default function MapComponent({
     <div className="relative w-full h-full min-h-[480px] rounded-md border border-border overflow-hidden bg-bg-surface flex flex-col">
       {/* Top Map Control Bar */}
       <div className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 bg-bg-surface/90 backdrop-blur-md px-2 py-1.5 rounded border border-border text-xs">
-        <span className="text-text-secondary pr-1 font-medium">Route:</span>
+        <button
+          onClick={() => setIsVehicleTracing(!isVehicleTracing)}
+          title="Toggle live dispatch vehicle tracer animation"
+          className={`px-2 py-1 rounded border transition-colors flex items-center gap-1 font-medium ${
+            isVehicleTracing
+              ? "bg-signal-green/20 border-signal-green text-signal-green"
+              : "bg-bg-base border-border text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <span>🚛</span>
+          <span>{isVehicleTracing ? "Tracing Live" : "Tracer Paused"}</span>
+        </button>
+        <span className="text-text-secondary pl-1 pr-1 font-medium">Route:</span>
         <button
           onClick={() => setViewMode("all")}
           className={`px-2 py-1 rounded transition-colors ${

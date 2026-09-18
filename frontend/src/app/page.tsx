@@ -14,10 +14,19 @@ import {
   MapPin,
   BarChart3,
   Layers,
+  Shield,
+  FileText,
+  ListOrdered,
+  Activity,
+  Dna,
+  Database,
+  ArrowRight,
 } from "lucide-react";
 import ConvergenceChart from "@/components/ConvergenceChart";
 import CompareView, { AlgorithmResult } from "@/components/CompareView";
 import RouteExplanationCard, { RouteExplanationData } from "@/components/RouteExplanationCard";
+import AdminLoginModal from "@/components/AdminLoginModal";
+import AdminPortalView from "@/components/AdminPortalView";
 
 // Dynamically import MapComponent to avoid Leaflet SSR issues
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
@@ -29,7 +38,7 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   ),
 });
 
-// Fallback landmark fixtures for offline / quickstart rendering — Expanded 30+ km Metropolitan Network
+// Fallback landmark fixtures for offline / quickstart rendering — Expanded 70+ km Regional Network
 const INITIAL_LANDMARKS = [
   { id: 0, name: "Gandhipuram Central Hub", lat: 11.0168, lon: 76.9678, desc: "Central Bus Terminus & Commercial Core" },
   { id: 1, name: "RS Puram (DB Road)", lat: 11.0095, lon: 76.9485, desc: "Western Residential & Retail District" },
@@ -55,6 +64,18 @@ const INITIAL_LANDMARKS = [
   { id: 21, name: "CHIL SEZ (Keeranatham)", lat: 11.0995, lon: 77.0085, desc: "Major Global IT Campus & Tech Park" },
   { id: 22, name: "Thudiyalur Junction", lat: 11.0815, lon: 76.9580, desc: "Mettupalayam Highway (NH-181) Hub" },
   { id: 23, name: "Vadavalli Gateway", lat: 11.0260, lon: 76.9045, desc: "Western Marudhamalai Foothills Link" },
+  { id: 24, name: "Pollachi Logistics Terminal", lat: 10.6609, lon: 77.0048, desc: "Southern Agro-Industrial Terminal (~42 km)" },
+  { id: 25, name: "Kinathukadavu Industrial Bypass", lat: 10.8214, lon: 77.0201, desc: "NH-83 Manufacturing Hub (~25 km)" },
+  { id: 26, name: "Madukkarai Cement Corridor", lat: 10.9020, lon: 76.9580, desc: "Heavy Minerals & NH-544 Interchange (~18 km)" },
+  { id: 27, name: "Walayar Interstate Border Post", lat: 10.8520, lon: 76.8550, desc: "Interstate Commercial Freight Gateway (~28 km)" },
+  { id: 28, name: "Siruvani Eco Valley (Alandurai)", lat: 10.9410, lon: 76.7950, desc: "Western Foothills & Water Basin (~30 km)" },
+  { id: 29, name: "Karamadai Agro Wholesale Market", lat: 11.2435, lon: 76.9582, desc: "Produce Exchange & NH-181 Station (~28 km)" },
+  { id: 30, name: "Mettupalayam Nilgiris Gateway", lat: 11.3015, lon: 76.9465, desc: "Mountain Freight Terminal & Rail Link (~36 km)" },
+  { id: 31, name: "Annur Highway Junction", lat: 11.2335, lon: 77.1332, desc: "Expressway Cross-Link & Powerloom Hub (~32 km)" },
+  { id: 32, name: "Karumathampatti Logistics Park", lat: 11.1090, lon: 77.1820, desc: "6-Lane NH-544 Central Warehouse Terminal (~30 km)" },
+  { id: 33, name: "Avinashi Industrial & Textile Hub", lat: 11.1925, lon: 77.2690, desc: "National Expressway Freight Interchange (~42 km)" },
+  { id: 34, name: "Tiruppur Border (Perumanallur)", lat: 11.1780, lon: 77.3340, desc: "Export Apparel & Eastbound Freight Gateway (~48 km)" },
+  { id: 35, name: "Palladam Freight Interchange", lat: 11.0045, lon: 77.2885, desc: "Multi-Arterial Logistics & Poultry Exchange (~38 km)" },
 ];
 
 export default function Dashboard() {
@@ -62,7 +83,21 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false);
 
   // Active Center Canvas Tab
-  const [activeTab, setActiveTab] = useState<"simulation" | "compare" | "trends">("simulation");
+  const [activeTab, setActiveTab] = useState<"simulation" | "compare" | "trends" | "admin">("simulation");
+
+  // Right Side Panel Tab
+  const [rightTab, setRightTab] = useState<"telemetry" | "explanation" | "itinerary">("telemetry");
+
+  // Admin Auth State
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [adminUser, setAdminUser] = useState<{ username: string; role: string; token: string } | null>(null);
+
+  // GA Hyper-parameters State
+  const [gaCrossover, setGaCrossover] = useState<"ox" | "pmx">("ox");
+  const [gaMutationRate, setGaMutationRate] = useState(0.15);
+
+  // Turn-by-Turn Waypoints Leg list
+  const [turnByTurnLegs, setTurnByTurnLegs] = useState<Array<{ legIndex: number; from: string; to: string }>>([]);
 
   // Input states
   const [sourceId, setSourceId] = useState(0);
@@ -119,6 +154,16 @@ export default function Dashboard() {
         // Keep initial fallback
       });
 
+    // Check stored admin authentication
+    try {
+      const savedToken = localStorage.getItem("egreen_token");
+      const savedUser = localStorage.getItem("egreen_user");
+      if (savedToken && savedUser) {
+        const parsed = JSON.parse(savedUser);
+        setAdminUser({ username: parsed.username, role: parsed.role, token: savedToken });
+      }
+    } catch {}
+
     // Run initial baseline
     runOptimization();
   }, []);
@@ -136,7 +181,13 @@ export default function Dashboard() {
 
   const handleScenarioChange = async (key: string) => {
     setActiveScenario(key);
-    if (key === "metro_greater") {
+    if (key === "regional_conglomerate") {
+      setSourceId(0);
+      setSelectedStops([1, 6, 11, 15, 18, 19, 21, 24, 25, 27, 28, 29, 30, 32, 33, 34]);
+    } else if (key === "interstate_cargo") {
+      setSourceId(0);
+      setSelectedStops([2, 6, 15, 18, 19, 26, 27, 32, 33, 34]);
+    } else if (key === "metro_greater") {
       setSourceId(0);
       setSelectedStops([1, 2, 6, 7, 11, 14, 15, 18, 19, 21, 22, 23]);
     } else if (key === "cbd_express") {
@@ -156,7 +207,7 @@ export default function Dashboard() {
         const res = await fetch("http://127.0.0.1:8000/api/instances/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ n_stops: 10, radius_km: 30 }),
+          body: JSON.stringify({ n_stops: 12, radius_km: 70 }),
         });
         const data = await res.json();
         if (data.stops_ids && data.stops_ids.length > 0) {
@@ -170,7 +221,7 @@ export default function Dashboard() {
       const candidateIds = landmarks.map((l) => l.id).filter((id) => id !== 0);
       const shuffled = [...candidateIds].sort(() => 0.5 - Math.random());
       setSourceId(0);
-      setSelectedStops(shuffled.slice(0, 10));
+      setSelectedStops(shuffled.slice(0, 12));
     }
   };
 
@@ -191,6 +242,8 @@ export default function Dashboard() {
           algorithm: algorithm,
           iterations: iterations,
           swarm_size: 30,
+          ga_crossover: gaCrossover,
+          ga_mutation_rate: gaMutationRate,
         }),
       });
 
@@ -202,6 +255,19 @@ export default function Dashboard() {
       setConvergenceHistory(data.convergence_history);
       setBaselineCost(data.baseline_cost);
       setCrossoverIteration(data.crossover_iteration);
+
+      if (data.after_route?.node_sequence) {
+        const nodes: string[] = data.after_route.node_sequence;
+        const legs: Array<{ legIndex: number; from: string; to: string }> = [];
+        for (let i = 0; i < nodes.length - 1; i++) {
+          legs.push({
+            legIndex: i + 1,
+            from: nodes[i],
+            to: nodes[i + 1],
+          });
+        }
+        setTurnByTurnLegs(legs);
+      }
 
       if (data.alternative_route?.coordinates) {
         setAlternativeCoords(data.alternative_route.coordinates);
@@ -373,12 +439,47 @@ export default function Dashboard() {
               Coimbatore Traffic Optimization Engine
             </span>
             <span className="ml-2 text-xs text-text-secondary hidden sm:inline">
-              Quantum-behaved Particle Swarm Routing &bull; OSM Road Network
+              Quantum-behaved Particle Swarm Routing &bull; OSM Regional Network
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {/* PostgreSQL / SQLite status pill */}
+          <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 rounded border border-border bg-bg-base text-[11px] font-mono text-signal-green">
+            <Database size={12} />
+            <span>PostgreSQL: Connected</span>
+          </div>
+
+          {/* Regional Network Radius pill */}
+          <div className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded border border-signal-amber/30 bg-signal-amber/10 text-[11px] font-mono text-signal-amber font-semibold">
+            <MapPin size={12} />
+            <span>70+ km Regional Network</span>
+          </div>
+
+          {/* Admin Auth Toggle */}
+          {adminUser ? (
+            <button
+              onClick={() => setActiveTab("admin")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                activeTab === "admin"
+                  ? "bg-signal-green text-bg-base"
+                  : "bg-signal-green/20 border border-signal-green text-signal-green hover:bg-signal-green/30"
+              }`}
+            >
+              <Shield size={13} />
+              <span>Admin: {adminUser.username}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setIsAdminModalOpen(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-bg-base border border-border hover:border-signal-amber text-text-primary text-xs font-medium transition-colors"
+            >
+              <Shield size={13} className="text-signal-amber" />
+              <span>Admin Login</span>
+            </button>
+          )}
+
           {/* Status badge */}
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-border bg-bg-base text-xs font-mono">
             <span
@@ -425,8 +526,8 @@ export default function Dashboard() {
               <label className="text-xs text-text-primary font-semibold">
                 Scenario & Radius
               </label>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-signal-amber/15 text-signal-amber border border-signal-amber/30">
-                OSM 30km
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-signal-amber/15 text-signal-amber border border-signal-amber/30 font-bold">
+                70km Regional
               </span>
             </div>
             <select
@@ -434,13 +535,15 @@ export default function Dashboard() {
               onChange={(e) => handleScenarioChange(e.target.value)}
               className="bg-bg-surface border border-border rounded px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-signal-amber transition-colors"
             >
+              <option value="regional_conglomerate">Regional Conglomerate (16 Stops, 65km — Maximum Regional)</option>
+              <option value="interstate_cargo">Interstate Freight Corridor (10 Stops, 50km — Walayar to Tiruppur)</option>
               <option value="metro_greater">Greater Coimbatore Metro (12 Stops, 32km — High Diff)</option>
               <option value="cbd_express">CBD Commercial Express (5 Stops, 8km)</option>
               <option value="industrial_cargo">Airport & Eastern Cargo (8 Stops, 24km)</option>
               <option value="north_south">North-South Arterial Spine (8 Stops, 26km)</option>
               <option value="western_suburbs">Western Suburbs & Tech Valley (6 Stops, 18km)</option>
               <option value="custom">Custom Stop Selection</option>
-              <option value="random">🎲 Generate Dynamic Random OSM Instance</option>
+              <option value="random">🎲 Generate Dynamic Random OSM Instance (70km)</option>
             </select>
           </div>
 
@@ -560,6 +663,46 @@ export default function Dashboard() {
             </select>
           </div>
 
+          {/* GA Evolutionary Controls (Visible when GA is selected) */}
+          {(algorithm === "ga_ox" || algorithm === "ga_pmx") && (
+            <div className="flex flex-col gap-2 bg-bg-base p-2.5 rounded border border-border">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-text-primary">
+                <Dna size={13} className="text-signal-green" />
+                <span>GA Genetic Operators</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-text-secondary font-medium">Crossover Operator</span>
+                <select
+                  value={algorithm === "ga_pmx" ? "pmx" : gaCrossover}
+                  onChange={(e) => {
+                    const val = e.target.value as "ox" | "pmx";
+                    setGaCrossover(val);
+                    setAlgorithm(val === "pmx" ? "ga_pmx" : "ga_ox");
+                  }}
+                  className="bg-bg-surface border border-border rounded px-2 py-1 text-xs text-text-primary focus:outline-none"
+                >
+                  <option value="ox">Order Crossover (OX) — Contiguous Sub-tours</option>
+                  <option value="pmx">Partially Mapped (PMX) — Absolute Positions</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between text-[10px] text-text-secondary font-medium">
+                  <span>Mutation Probability</span>
+                  <span className="font-mono text-text-primary font-semibold">{Math.round(gaMutationRate * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={0.50}
+                  step={0.05}
+                  value={gaMutationRate}
+                  onChange={(e) => setGaMutationRate(parseFloat(e.target.value))}
+                  className="w-full accent-signal-green"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Iterations Slider */}
           <div className="flex flex-col gap-1">
             <div className="flex items-center justify-between text-xs text-text-secondary">
@@ -645,10 +788,23 @@ export default function Dashboard() {
                 <Layers size={13} />
                 <span>Performance Trends</span>
               </button>
+              {adminUser && (
+                <button
+                  onClick={() => setActiveTab("admin")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded font-medium transition-colors ${
+                    activeTab === "admin"
+                      ? "bg-bg-base text-signal-green font-semibold shadow-sm"
+                      : "text-text-secondary hover:text-text-primary"
+                  }`}
+                >
+                  <Shield size={13} className="text-signal-green" />
+                  <span>Admin Console</span>
+                </button>
+              )}
             </div>
 
             <span className="text-xs text-text-secondary hidden md:inline font-mono">
-              Coimbatore &bull; 11.0168° N, 76.9678° E
+              Coimbatore Regional &bull; 11.0168° N, 76.9678° E
             </span>
           </div>
 
@@ -683,146 +839,243 @@ export default function Dashboard() {
                 />
               </div>
             )}
+
+            {activeTab === "admin" && (
+              <AdminPortalView
+                token={adminUser?.token || null}
+                username={adminUser?.username || "admin"}
+                onLogout={() => {
+                  localStorage.removeItem("egreen_token");
+                  localStorage.removeItem("egreen_user");
+                  setAdminUser(null);
+                  setActiveTab("simulation");
+                }}
+              />
+            )}
           </div>
         </section>
 
         {/* ========================================================================= */}
-        {/* COLUMN 3: RESULTS PANEL (Right, Always Visible) */}
+        {/* COLUMN 3: RESULTS PANEL (Right, Cleanly Split into Tabs) */}
         {/* ========================================================================= */}
-        <aside className="col-span-12 lg:col-span-3 bg-bg-surface p-4 flex flex-col gap-4 overflow-y-auto max-h-[calc(100vh-3rem)]">
-          <div className="flex items-center gap-2 border-b border-border pb-2">
-            <CheckCircle2 size={15} className="text-signal-green" />
-            <h2 className="text-xs font-bold uppercase tracking-wider text-text-primary">
-              Operational Metrics
-            </h2>
+        <aside className="col-span-12 lg:col-span-3 bg-bg-surface p-4 flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-3rem)]">
+          {/* Sub-Tabs Header */}
+          <div className="flex items-center gap-1 bg-bg-base border border-border rounded p-1 text-xs">
+            <button
+              onClick={() => setRightTab("telemetry")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded font-medium transition-colors ${
+                rightTab === "telemetry"
+                  ? "bg-bg-surface text-text-primary shadow-sm font-semibold"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <Activity size={13} className="text-signal-green" />
+              <span>KPIs</span>
+            </button>
+            <button
+              onClick={() => setRightTab("explanation")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded font-medium transition-colors ${
+                rightTab === "explanation"
+                  ? "bg-bg-surface text-text-primary shadow-sm font-semibold"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <FileText size={13} className="text-signal-amber" />
+              <span>Audit & Why</span>
+            </button>
+            <button
+              onClick={() => setRightTab("itinerary")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded font-medium transition-colors ${
+                rightTab === "itinerary"
+                  ? "bg-bg-surface text-text-primary shadow-sm font-semibold"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <ListOrdered size={13} />
+              <span>Legs</span>
+            </button>
           </div>
 
-          {/* Travel Time Card */}
-          <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
-              <span className="flex items-center gap-1.5">
-                <Clock size={13} />
-                <span>Total Travel Time</span>
-              </span>
-              <span className="text-signal-green font-mono font-bold">
-                -{metrics.timeImprovementPct}%
-              </span>
-            </div>
+          {/* TAB 1: OPERATIONAL TELEMETRY & KPIS */}
+          {rightTab === "telemetry" && (
+            <div className="flex flex-col gap-3">
+              {/* Travel Time Card */}
+              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <Clock size={13} />
+                    <span>Total Travel Time</span>
+                  </span>
+                  <span className="text-signal-green font-mono font-bold">
+                    -{metrics.timeImprovementPct}%
+                  </span>
+                </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-signal-red font-medium">
-                  Before (Baseline)
-                </span>
-                <span className="font-mono text-base font-bold text-signal-red">
-                  {metrics.beforeTime.toFixed(1)} <span className="text-xs font-normal">min</span>
-                </span>
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-signal-red font-medium">
+                      Before (Baseline)
+                    </span>
+                    <span className="font-mono text-base font-bold text-signal-red">
+                      {metrics.beforeTime.toFixed(1)} <span className="text-xs font-normal">min</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-signal-green font-medium">
+                      After (Optimized)
+                    </span>
+                    <span className="font-mono text-base font-bold text-signal-green">
+                      {metrics.afterTime.toFixed(1)} <span className="text-xs font-normal">min</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-text-secondary bg-bg-surface px-2 py-1 rounded border border-border font-mono">
+                  Transit savings: <span className="text-signal-green font-semibold">{metrics.timeSavedMin.toFixed(1)} minutes</span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-signal-green font-medium">
-                  After (Optimized)
+
+              {/* Total Distance Card */}
+              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <TrendingDown size={13} />
+                    <span>Road Network Distance</span>
+                  </span>
+                  <span className="text-signal-green font-mono font-bold">
+                    -{metrics.distanceImprovementPct}%
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-signal-red font-medium">
+                      Before
+                    </span>
+                    <span className="font-mono text-base font-bold text-signal-red">
+                      {metrics.beforeDistance.toFixed(1)} <span className="text-xs font-normal">km</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-signal-green font-medium">
+                      After
+                    </span>
+                    <span className="font-mono text-base font-bold text-signal-green">
+                      {metrics.afterDistance.toFixed(1)} <span className="text-xs font-normal">km</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Traffic Congestion Factor */}
+              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
+                  <span>Corridor Congestion Index</span>
+                  <span className="font-mono text-xs text-text-primary">
+                    {trafficMode === "real" ? "Simulated Live" : "Unrestricted"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-text-secondary font-medium">
+                      Average Edge Delay
+                    </span>
+                    <span className="font-mono text-sm font-semibold text-text-primary">
+                      {metrics.beforeCongestion.toFixed(2)}x
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-text-secondary font-medium">
+                      Bottlenecks Avoided
+                    </span>
+                    <span className="font-mono text-sm font-semibold text-signal-green">
+                      High
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Solver Diagnostics */}
+              <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
+                <span className="text-[11px] uppercase tracking-wider text-text-secondary font-bold">
+                  Convergence Metrics
                 </span>
-                <span className="font-mono text-base font-bold text-signal-green">
-                  {metrics.afterTime.toFixed(1)} <span className="text-xs font-normal">min</span>
-                </span>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-text-secondary">Execution Latency:</span>
+                  <span className="font-mono font-semibold text-text-primary">
+                    {metrics.runtimeMs.toFixed(1)} ms
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-text-secondary">Iterations Completed:</span>
+                  <span className="font-mono font-semibold text-text-primary">
+                    {metrics.iterationCount}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-text-secondary">Crossover Point:</span>
+                  <span className="font-mono font-semibold text-signal-amber">
+                    {crossoverIteration !== null ? `Iter ${crossoverIteration}` : "Immediate"}
+                  </span>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="text-[11px] text-text-secondary bg-bg-surface px-2 py-1 rounded border border-border font-mono">
-              Transit savings: <span className="text-signal-green font-semibold">{metrics.timeSavedMin.toFixed(1)} minutes</span>
+          {/* TAB 2: DETERMINISTIC EXPLAINABILITY LAYER */}
+          {rightTab === "explanation" && (
+            <div className="flex flex-col gap-3">
+              <RouteExplanationCard explanation={routeExplanation} />
             </div>
-          </div>
+          )}
 
-          {/* Total Distance Card */}
-          <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
-              <span className="flex items-center gap-1.5">
-                <TrendingDown size={13} />
-                <span>Road Network Distance</span>
-              </span>
-              <span className="text-signal-green font-mono font-bold">
-                -{metrics.distanceImprovementPct}%
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-signal-red font-medium">
-                  Before
-                </span>
-                <span className="font-mono text-base font-bold text-signal-red">
-                  {metrics.beforeDistance.toFixed(1)} <span className="text-xs font-normal">km</span>
-                </span>
+          {/* TAB 3: TURN-BY-TURN ROUTE LEGS */}
+          {rightTab === "itinerary" && (
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between text-xs font-semibold text-text-primary pb-1 border-b border-border">
+                <span>Waypoint Sequence</span>
+                <span className="font-mono text-[11px] text-text-secondary">{turnByTurnLegs.length} Legs</span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-signal-green font-medium">
-                  After
-                </span>
-                <span className="font-mono text-base font-bold text-signal-green">
-                  {metrics.afterDistance.toFixed(1)} <span className="text-xs font-normal">km</span>
-                </span>
-              </div>
+              {turnByTurnLegs.length === 0 ? (
+                <div className="p-4 text-center text-xs text-text-secondary">
+                  Run an optimization to view detailed leg-by-leg sequence.
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {turnByTurnLegs.map((leg) => (
+                    <div
+                      key={leg.legIndex}
+                      className="p-2.5 rounded bg-bg-base border border-border flex flex-col gap-1 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] uppercase font-bold text-signal-green">
+                          Leg #{leg.legIndex}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-text-primary font-medium">
+                        <span className="truncate">{leg.from}</span>
+                        <ArrowRight size={12} className="shrink-0 text-text-secondary" />
+                        <span className="truncate text-signal-amber font-semibold">{leg.to}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-
-          {/* Traffic Congestion Factor */}
-          <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs text-text-secondary font-medium">
-              <span>Corridor Congestion Index</span>
-              <span className="font-mono text-xs text-text-primary">
-                {trafficMode === "real" ? "Simulated Live" : "Unrestricted"}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50">
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-text-secondary font-medium">
-                  Average Edge Delay
-                </span>
-                <span className="font-mono text-sm font-semibold text-text-primary">
-                  {metrics.beforeCongestion.toFixed(2)}x
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-text-secondary font-medium">
-                  Bottlenecks Avoided
-                </span>
-                <span className="font-mono text-sm font-semibold text-signal-green">
-                  High
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Solver Diagnostics */}
-          <div className="border border-border rounded bg-bg-base p-3 flex flex-col gap-2 mt-auto">
-            <span className="text-[11px] uppercase tracking-wider text-text-secondary font-bold">
-              Convergence Metrics
-            </span>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-text-secondary">Execution Latency:</span>
-              <span className="font-mono font-semibold text-text-primary">
-                {metrics.runtimeMs.toFixed(1)} ms
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-text-secondary">Iterations Completed:</span>
-              <span className="font-mono font-semibold text-text-primary">
-                {metrics.iterationCount}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-text-secondary">Crossover Point:</span>
-              <span className="font-mono font-semibold text-signal-amber">
-                {crossoverIteration !== null ? `Iter ${crossoverIteration}` : "Immediate"}
-              </span>
-            </div>
-          </div>
-
-          {/* Explainability Layer Card */}
-          <RouteExplanationCard explanation={routeExplanation} />
+          )}
         </aside>
       </main>
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onLoginSuccess={(authData) => {
+          setAdminUser(authData);
+          setActiveTab("admin");
+        }}
+      />
     </div>
   );
 }

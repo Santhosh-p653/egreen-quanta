@@ -31,36 +31,42 @@ from graphhopper_client import (
 class TestGraphHopperOsm(unittest.TestCase):
 
     def test_expanded_landmarks_and_connectivity(self):
-        """Verify graph has 24 landmarks and is 100% connected."""
-        self.assertEqual(len(COIMBATORE_LANDMARKS), 24)
+        """Verify graph has 36 landmarks and is 100% connected."""
+        self.assertEqual(len(COIMBATORE_LANDMARKS), 36)
         G = build_coimbatore_graph()
-        self.assertEqual(G.number_of_nodes(), 24)
+        self.assertEqual(G.number_of_nodes(), 36)
         self.assertTrue(nx.is_connected(G))
 
-    def test_metropolitan_radius_exceeds_25km(self):
-        """Verify the expanded network spans across 25-30+ km."""
+    def test_regional_radius_exceeds_60km(self):
+        """Verify the expanded regional network spans across 60-70+ km."""
         depot = COIMBATORE_LANDMARKS[0]
-        sulur = COIMBATORE_LANDMARKS[18]
-        eachanari = COIMBATORE_LANDMARKS[15]
-        vadavalli = COIMBATORE_LANDMARKS[23]
+        pollachi = COIMBATORE_LANDMARKS[24]
+        mettupalayam = COIMBATORE_LANDMARKS[30]
+        walayar = COIMBATORE_LANDMARKS[27]
+        tiruppur_border = COIMBATORE_LANDMARKS[34]
 
-        d_sulur = haversine_distance_km(depot["lat"], depot["lon"], sulur["lat"], sulur["lon"])
-        d_eachanari = haversine_distance_km(depot["lat"], depot["lon"], eachanari["lat"], eachanari["lon"])
-        d_vadavalli = haversine_distance_km(depot["lat"], depot["lon"], vadavalli["lat"], vadavalli["lon"])
+        d_pollachi = haversine_distance_km(depot["lat"], depot["lon"], pollachi["lat"], pollachi["lon"])
+        d_mettupalayam = haversine_distance_km(depot["lat"], depot["lon"], mettupalayam["lat"], mettupalayam["lon"])
 
-        # Diameter across the network
-        diameter = haversine_distance_km(vadavalli["lat"], vadavalli["lon"], sulur["lat"], sulur["lon"])
-        self.assertGreater(diameter, 24.0)
-        self.assertGreater(d_sulur, 15.0)
+        # North-South and East-West regional spans
+        ns_span = haversine_distance_km(mettupalayam["lat"], mettupalayam["lon"], pollachi["lat"], pollachi["lon"])
+        ew_span = haversine_distance_km(walayar["lat"], walayar["lon"], tiruppur_border["lat"], tiruppur_border["lon"])
+
+        self.assertGreater(d_pollachi, 35.0)
+        self.assertGreater(d_mettupalayam, 30.0)
+        self.assertGreater(ns_span, 65.0)  # Over 65 km North-South regional diameter!
+        self.assertGreater(ew_span, 50.0)  # Over 50 km East-West regional diameter!
 
     def test_benchmark_scenarios_presence(self):
         """Verify curated benchmark scenarios exist with valid stop IDs."""
         self.assertIn("metro_greater", BENCHMARK_SCENARIOS)
         self.assertIn("cbd_express", BENCHMARK_SCENARIOS)
+        self.assertIn("regional_conglomerate", BENCHMARK_SCENARIOS)
+        self.assertIn("interstate_cargo", BENCHMARK_SCENARIOS)
 
-        metro = BENCHMARK_SCENARIOS["metro_greater"]
-        self.assertEqual(len(metro["stops"]), 12)
-        for stop_id in metro["stops"]:
+        regional = BENCHMARK_SCENARIOS["regional_conglomerate"]
+        self.assertEqual(len(regional["stops"]), 16)
+        for stop_id in regional["stops"]:
             self.assertIn(stop_id, COIMBATORE_LANDMARKS)
 
     def test_dynamic_osm_instance_generator(self):
