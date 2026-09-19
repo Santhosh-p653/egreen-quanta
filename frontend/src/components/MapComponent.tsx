@@ -136,6 +136,12 @@ export default function MapComponent({
       activeTraceCoords = beforeCoordinates;
     } else if (viewMode === "alternative" && alternativeCoordinates.length > 1) {
       activeTraceCoords = alternativeCoordinates;
+    } else if ((viewMode === "all" || viewMode === "optimal") && afterCoordinates.length <= 1) {
+      if (alternativeCoordinates && alternativeCoordinates.length > 1) {
+        activeTraceCoords = alternativeCoordinates;
+      } else if (beforeCoordinates && beforeCoordinates.length > 1) {
+        activeTraceCoords = beforeCoordinates;
+      }
     }
 
     if (isVehicleTracing && activeTraceCoords.length > 1) {

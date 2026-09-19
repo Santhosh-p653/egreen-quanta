@@ -63,3 +63,47 @@ body {
   font-family: var(--font-ibm-plex-sans) !important;
   background-color: var(--bg-base) !important;
 }
+
+/* Animated route polylines and vehicle tracer */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes dash-flow-baseline {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes dash-flow-alternative {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+.leaflet-route-optimal {
+  filter: drop-shadow(0 0 6px rgba(46, 204, 113, 0.6));
+  transition: stroke 0.3s ease;
+}
+
+.leaflet-route-baseline {
+  stroke-dasharray: 8, 8;
+  animation: dash-flow-baseline 15s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(229, 72, 77, 0.4));
+}
+
+.leaflet-route-alternative {
+  stroke-dasharray: 6, 6;
+  animation: dash-flow-alternative 18s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(245, 166, 35, 0.5));
+}
+
+.dispatch-tracer-icon {
+  transition: transform 0.05s linear;
+}
+

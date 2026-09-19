@@ -380,6 +380,11 @@ def optimize_route(req: OptimizeRequest):
         algorithm_name=req.algorithm.upper(),
     )
 
+    turn_by_turn = [
+        {"leg": i + 1, "from": selected_route_names[i], "to": selected_route_names[i + 1]}
+        for i in range(len(selected_route_names) - 1)
+    ]
+
     response_payload = {
         "algorithm": req.algorithm,
         "traffic_mode": req.traffic_mode,
@@ -422,6 +427,23 @@ def optimize_route(req: OptimizeRequest):
             "distance_km": alt_geom["total_distance_km"],
             "travel_time_min": alt_geom["total_time_min"],
         },
+        # Top-level backwards compatibility aliases
+        "route_coordinates": after_geom["coordinates"],
+        "baseline_coordinates": before_geom["coordinates"],
+        "alternative_coordinates": alt_geom["coordinates"],
+        "alternative_name": alt_name,
+        "baseline_distance_km": before_geom["total_distance_km"],
+        "optimized_distance_km": after_geom["total_distance_km"],
+        "baseline_time_min": before_geom["total_time_min"],
+        "optimized_time_min": after_geom["total_time_min"],
+        "baseline_congestion": round(avg_congestion, 2),
+        "optimized_congestion": round(avg_congestion, 2),
+        "time_saved_min": max(0.0, round(before_geom["total_time_min"] - after_geom["total_time_min"], 1)),
+        "time_improvement_pct": time_improvement_pct,
+        "distance_improvement_pct": dist_improvement_pct,
+        "runtime_ms": round(opt_result["runtime"] * 1000, 2),
+        "iterations": req.iterations,
+        "turn_by_turn": turn_by_turn,
         "explanation": explanation,
         "landmarks": [COIMBATORE_LANDMARKS[n] for n in [req.source_id] + waypoints],
     }

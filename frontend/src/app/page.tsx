@@ -176,6 +176,9 @@ export default function Dashboard() {
       }
     } catch {}
 
+    // Initialize default route coordinates immediately so map and vehicle tracer render from frame 0
+    simulateLocalRun(0, null);
+
     // Initialize baseline calculation
     runOptimization();
   }, []);
@@ -276,15 +279,19 @@ export default function Dashboard() {
 
       const data = await res.json();
 
-      if (data.route_coordinates && data.route_coordinates.length > 0) {
-        setAfterCoords(data.route_coordinates);
+      const optCoords = data.after_route?.coordinates || data.route_coordinates || [];
+      const baseCoords = data.before_route?.coordinates || data.baseline_coordinates || [];
+      const altCoords = data.alternative_route?.coordinates || data.alternative_coordinates || [];
+
+      if (optCoords.length > 0) {
+        setAfterCoords(optCoords);
       }
-      if (data.baseline_coordinates && data.baseline_coordinates.length > 0) {
-        setBeforeCoords(data.baseline_coordinates);
+      if (baseCoords.length > 0) {
+        setBeforeCoords(baseCoords);
       }
-      if (data.alternative_coordinates && data.alternative_coordinates.length > 0) {
-        setAlternativeCoords(data.alternative_coordinates);
-        setAlternativeName(data.alternative_name || "Clarke-Wright Savings");
+      if (altCoords.length > 0) {
+        setAlternativeCoords(altCoords);
+        setAlternativeName(data.alternative_route?.name || data.alternative_name || "Clarke-Wright Savings");
       }
 
       if (data.turn_by_turn && Array.isArray(data.turn_by_turn)) {
@@ -295,26 +302,51 @@ export default function Dashboard() {
             to: leg.to || `Stop ${idx + 1}`,
           }))
         );
+      } else if (data.after_route?.node_sequence && Array.isArray(data.after_route.node_sequence)) {
+        const seq = data.after_route.node_sequence;
+        const legs = [];
+        for (let i = 0; i < seq.length - 1; i++) {
+          legs.push({
+            legIndex: i + 1,
+            from: seq[i],
+            to: seq[i + 1],
+          });
+        }
+        setTurnByTurnLegs(legs);
       }
 
+      const beforeDist = data.before_metrics?.distance_km ?? data.baseline_distance_km ?? 28.4;
+      const afterDist = data.after_metrics?.distance_km ?? data.optimized_distance_km ?? 22.8;
+      const beforeTime = data.before_metrics?.travel_time_min ?? data.baseline_time_min ?? 62.6;
+      const afterTime = data.after_metrics?.travel_time_min ?? data.optimized_time_min ?? 44.8;
+      const beforeCong = data.before_metrics?.congestion_level ?? data.baseline_congestion ?? 1.85;
+      const afterCong = data.after_metrics?.congestion_level ?? data.optimized_congestion ?? 1.35;
+      const timeSaved = data.after_metrics?.time_saved_min ?? data.time_saved_min ?? Math.max(0, Number((beforeTime - afterTime).toFixed(1)));
+      const timeImpPct = data.after_metrics?.time_improvement_pct ?? data.time_improvement_pct ?? 28.4;
+      const distImpPct = data.after_metrics?.distance_improvement_pct ?? data.distance_improvement_pct ?? 19.7;
+      const runtime = data.after_metrics?.runtime_ms ?? data.runtime_ms ?? 142.5;
+      const iters = data.after_metrics?.iterations ?? data.iterations ?? iterations;
+
       setMetrics({
-        beforeDistance: data.baseline_distance_km || 28.4,
-        afterDistance: data.optimized_distance_km || 22.8,
-        beforeTime: data.baseline_time_min || 62.6,
-        afterTime: data.optimized_time_min || 44.8,
-        beforeCongestion: data.baseline_congestion || 1.85,
-        afterCongestion: data.optimized_congestion || 1.35,
-        timeSavedMin: data.time_saved_min || 17.8,
-        timeImprovementPct: data.time_improvement_pct || 28.4,
-        distanceImprovementPct: data.distance_improvement_pct || 19.7,
-        runtimeMs: data.runtime_ms || 142.5,
-        iterationCount: data.iterations || iterations,
+        beforeDistance: beforeDist,
+        afterDistance: afterDist,
+        beforeTime: beforeTime,
+        afterTime: afterTime,
+        beforeCongestion: beforeCong,
+        afterCongestion: afterCong,
+        timeSavedMin: timeSaved,
+        timeImprovementPct: timeImpPct,
+        distanceImprovementPct: distImpPct,
+        runtimeMs: runtime,
+        iterationCount: iters,
       });
 
       if (data.convergence_history) {
         setConvergenceHistory(data.convergence_history);
       }
-      if (data.baseline_time_min) {
+      if (data.baseline_cost !== undefined) {
+        setBaselineCost(data.baseline_cost);
+      } else if (data.baseline_time_min) {
         setBaselineCost(data.baseline_time_min);
       }
       if (data.crossover_iteration !== undefined) {
