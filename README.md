@@ -21,6 +21,7 @@ egreen-quanta/
 │   ├── osm_road_network.py   # 36-hub 70+ km Greater Coimbatore Regional OSM road graph
 │   ├── graphhopper_client.py # OSM & GraphHopper matrix client (75km bounding radius)
 │   ├── qpso.py               # Quantum-behaved Particle Swarm Optimization
+│   ├── quantum_bidirectional_astar.py # Quantum-Inspired Bidirectional A* (wavepacket & tunneling)
 │   ├── classical_pso.py      # Classical velocity- & inertia-driven PSO
 │   ├── ga.py                 # Genetic Algorithm (OX, PMX crossover, 2-opt inversion mutation)
 │   ├── clarke_wright.py      # Clarke-Wright Savings heuristic
@@ -45,7 +46,8 @@ egreen-quanta/
 │   │   └── ThemeProvider.tsx         # Next-themes Dark/Light provider
 │   ├── tailwind.config.ts    # High-contrast traffic-signal design tokens
 │   └── package.json          # Node.js dependencies
-├── tests/                    # Automated verification test suite (22 unit & integration tests)
+├── tests/                    # Automated verification test suite (29 unit & integration tests)
+│   ├── test_quantum_bidirectional_astar.py # QI-BA* pathfinding, tunneling & tour tests
 │   ├── test_auth_database.py       # JWT auth, user login, DB logging & fallback tests
 │   ├── test_explainability.py      # Explainability unit tests
 │   ├── test_api_explainability.py  # FastAPI integration tests
@@ -98,7 +100,7 @@ egreen-quanta/
   * Convergence Trajectory Curves.
 * **5-Graph Benchmark Suite (`CompareView.tsx`):**
   1. *Normalized Performance Bars* (Time, Distance, Latency).
-  2. *Multi-Line Convergence Trajectories* across all 7 algorithms.
+  2. *Multi-Line Convergence Trajectories* across all 8 algorithms.
   3. *Carbon & Energy Impact* (kg CO2 emitted factoring congestion delays).
   4. *Pareto Frontier Matrix* (Computation Latency vs Time Savings).
   5. *Comprehensive Multi-Criteria Scorecard* with true winner evaluation.
@@ -110,6 +112,7 @@ egreen-quanta/
 | Algorithm | Category | Role | Primary File |
 |---|---|---|---|
 | **QPSO** | Quantum-Inspired Metaheuristic | Primary route optimization engine | [`backend/qpso.py`](backend/qpso.py) |
+| **QI-BA\*** | Quantum Graph Search | Dual wavepacket search with delta-potential barrier tunneling | [`backend/quantum_bidirectional_astar.py`](backend/quantum_bidirectional_astar.py) |
 | **QWOA** | True Quantum Simulation | Schrödinger state-vector simulation on $S_n$ | [`backend/qwoa.py`](backend/qwoa.py) |
 | **Classical PSO** | Swarm Intelligence | Velocity- and momentum-based baseline | [`backend/classical_pso.py`](backend/classical_pso.py) |
 | **GA-OX & GA-PMX** | Evolutionary Algorithms | Order and Partially Mapped Crossover + 2-opt inversion | [`backend/ga.py`](backend/ga.py) |
@@ -145,7 +148,7 @@ Open **`http://localhost:3000`** in your browser.
 ```bash
 python -m unittest discover tests
 ```
-Runs all 22 tests covering auth, JWT, database logging, OSM network, explainability, and solvers.
+Runs all 29 tests covering auth, JWT, database logging, OSM network, explainability, solvers, and QI-BA*.
 
 ---
 

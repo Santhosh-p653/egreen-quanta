@@ -39,6 +39,7 @@ from ga import ga_optimize
 from baseline import nearest_neighbor_route
 from clarke_wright import clarke_wright_route
 from cheapest_insertion import cheapest_insertion_route
+from quantum_bidirectional_astar import quantum_bidirectional_astar_route
 from explainability import build_route_explanation, build_multivehicle_explanation
 from graphhopper_client import generate_osm_cvrp_instance, GraphHopperClient
 
@@ -182,6 +183,13 @@ def get_algorithms():
             "is_primary": True,
         },
         {
+            "id": "qi_astar",
+            "name": "Quantum-Inspired Bidirectional A* (QI-BA*)",
+            "family": "Quantum Graph Search",
+            "desc": "Dual wavepacket search with delta-potential barrier tunneling and constructive interference rendezvous.",
+            "is_primary": False,
+        },
+        {
             "id": "classical_pso",
             "name": "Classical PSO",
             "family": "Swarm Intelligence",
@@ -240,6 +248,15 @@ def _run_solver(
     """Executes the specified optimization solver."""
     if algo == "qpso":
         return qpso_optimize(G, depot, waypoints, n_particles=swarm_size, n_iterations=iterations, seed=seed)
+    elif algo == "qi_astar":
+        return quantum_bidirectional_astar_route(
+            G,
+            depot,
+            waypoints,
+            iterations=iterations,
+            swarm_size=swarm_size,
+            seed=seed,
+        )
     elif algo == "classical_pso":
         return classical_pso_optimize(G, depot, waypoints, n_particles=swarm_size, n_iterations=iterations, seed=seed)
     elif algo in ("ga", "ga_ox", "ga_pmx"):
@@ -546,6 +563,7 @@ def get_system_status():
         "radius_coverage_km": "70+ km Regional Scale",
         "supported_algorithms": [
             "QPSO",
+            "Quantum-Inspired Bidirectional A* (QI-BA*)",
             "Classical PSO",
             "GA (OX)",
             "GA (PMX)",
@@ -607,7 +625,16 @@ def compare_all_algorithms(req: OptimizeRequest):
     G = build_coimbatore_graph(traffic_mode=req.traffic_mode, seed=req.seed)
     waypoints = [w for w in req.intermediate_stops if w in COIMBATORE_LANDMARKS and w != req.source_id]
 
-    algos = ["qpso", "classical_pso", "ga_ox", "ga_pmx", "clarke_wright", "cheapest_insertion", "nearest_neighbor"]
+    algos = [
+        "qpso",
+        "qi_astar",
+        "classical_pso",
+        "ga_ox",
+        "ga_pmx",
+        "clarke_wright",
+        "cheapest_insertion",
+        "nearest_neighbor",
+    ]
     results = []
 
     end_node = (
@@ -626,6 +653,7 @@ def compare_all_algorithms(req: OptimizeRequest):
             "id": a,
             "name": {
                 "qpso": "QPSO",
+                "qi_astar": "QI-BA*",
                 "classical_pso": "Classical PSO",
                 "ga_ox": "GA (Order Crossover)",
                 "ga_pmx": "GA (PMX Crossover)",

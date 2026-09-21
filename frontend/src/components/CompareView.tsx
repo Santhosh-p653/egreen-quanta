@@ -98,6 +98,7 @@ export default function CompareView({
 
   const colors: Record<string, string> = {
     qpso: "#2ECC71", // signal-green
+    qi_astar: "#06B6D4", // cyan
     classical_pso: "#F5A623", // signal-amber
     ga_ox: "#3B82F6", // blue
     ga_pmx: "#8B5CF6", // purple
@@ -130,7 +131,7 @@ export default function CompareView({
             </h3>
           </div>
           <p className="text-sm text-text-secondary mt-1">
-            Real ground-truth benchmarking across all 7 solvers on the 70+ km regional network. True best performer is dynamically identified without bias.
+            Real ground-truth benchmarking across all 8 solvers on the 70+ km regional network. True best performer is dynamically identified without bias.
           </p>
         </div>
 

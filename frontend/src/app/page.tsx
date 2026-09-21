@@ -813,6 +813,7 @@ export default function Dashboard() {
                   className="bg-bg-base border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-signal-amber transition-colors font-medium"
                 >
                   <option value="qpso">Quantum-behaved Particle Swarm (QPSO)</option>
+                  <option value="qi_astar">Quantum-Inspired Bidirectional A* (QI-BA*)</option>
                   <option value="classical_pso">Classical PSO</option>
                   <option value="ga_ox">Genetic Algorithm (Order Crossover)</option>
                   <option value="ga_pmx">Genetic Algorithm (PMX)</option>

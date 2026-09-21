@@ -26,6 +26,7 @@ egreen-quanta/
 │   ├── osm_road_network.py   # 36-hub 70+ km Greater Coimbatore Regional network
 │   ├── graphhopper_client.py # OSM matrix client (75km radius)
 │   ├── qpso.py               # Quantum-behaved Particle Swarm Optimization
+│   ├── quantum_bidirectional_astar.py # Quantum-Inspired Bidirectional A* (wavepacket & tunneling)
 │   ├── classical_pso.py      # Classical Velocity PSO baseline
 │   ├── ga.py                 # Genetic Algorithm (OX, PMX, 2-opt inversion mutation)
 │   ├── clarke_wright.py      # Clarke-Wright Savings heuristic
@@ -45,7 +46,7 @@ egreen-quanta/
 │   │   └── AdminPortalView.tsx       # PostgreSQL database audit log console
 │   ├── package.json          # Node dependencies
 │   └── tailwind.config.ts    # High-contrast traffic signal design tokens
-├── tests/                    # Automated verification test suite (22 tests)
+├── tests/                    # Automated verification test suite (29 tests)
 ├── Dockerfile                # Root container specification
 ├── README.md                 # Master documentation
 └── setup.md                  # This setup guide
@@ -153,7 +154,7 @@ Use the persistent left sidebar to switch between views:
 
 ## 6. Automated Verification Test Suite
 
-Run the full suite of 22 automated tests:
+Run the full suite of 29 automated tests:
 
 ```bash
 # From repository root:
@@ -161,8 +162,9 @@ python -m unittest discover tests
 ```
 
 Tests verify:
-1. `tests/test_auth_database.py`: JWT token generation, admin authentication, SQLite fallback, and audit logging.
-2. `tests/test_graphhopper_osm.py`: 70+ km regional network, 36 landmarks, 57 road edges, and GraphHopper matrix client.
-3. `tests/test_explainability.py`: Deterministic route explainability and constraint verification.
-4. `tests/test_api_explainability.py`: FastAPI endpoints for optimization and explanation retrieval.
-5. `tests/test_solvers.py`: QPSO, Classical PSO, GA (OX/PMX), and classical heuristics.
+1. `tests/test_quantum_bidirectional_astar.py`: QI-BA* point-to-point pathfinding, delta-potential barrier tunneling, and multi-stop tour optimization.
+2. `tests/test_auth_database.py`: JWT token generation, admin authentication, SQLite fallback, and audit logging.
+3. `tests/test_graphhopper_osm.py`: 70+ km regional network, 36 landmarks, 57 road edges, and GraphHopper matrix client.
+4. `tests/test_explainability.py`: Deterministic route explainability and constraint verification.
+5. `tests/test_api_explainability.py`: FastAPI endpoints for optimization and explanation retrieval.
+6. `tests/test_solvers.py`: QPSO, Classical PSO, GA (OX/PMX), and classical heuristics.
