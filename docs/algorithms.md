@@ -21,6 +21,7 @@ To provide clear, in-depth documentation, each algorithm is documented in its ow
 | **09** | [**Cheapest Insertion Heuristic**](algorithms/09_cheapest_insertion.md) | Classical Greedy Diversity | $\Delta c = c(u, k) + c(k, v) - c(u, v)$ | [`cheapest_insertion.py`](../cheapest_insertion.py) |
 | **10** | [**QWOA (State-Vector Quantum Walk)**](algorithms/10_qwoa_quantum_walk.md) | True Quantum Simulation | $|\psi\rangle = \prod e^{-i\beta H_M} e^{-i\gamma H_C} |\psi_0\rangle$ on $S_n$ | [`qwoa.py`](../qwoa.py) |
 | **11** | [**Benchmarking Methodologies**](algorithms/11_benchmarking.md) | Evaluation & Validation | Multi-seed, scalability sweep, multi-instance | [`benchmark.py`](../benchmark.py), [`cvrp_benchmark.py`](../cvrp_benchmark.py) |
+| **12** | [**Quantum-Inspired Bidirectional A* (QI-BA*)**](algorithms/12_quantum_bidirectional_astar.md) | Quantum Graph Search | Dual wavepackets, $\delta$-well tunneling, and constructive interference | [`quantum_bidirectional_astar.py`](../backend/quantum_bidirectional_astar.py) |
 
 ---
 

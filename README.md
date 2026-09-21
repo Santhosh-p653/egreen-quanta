@@ -54,7 +54,7 @@ egreen-quanta/
 │   ├── test_graphhopper_osm.py     # 70km regional network & GraphHopper tests
 │   └── test_solvers.py             # QPSO, PSO, GA, CVRP heuristics tests
 ├── docs/                     # Technical documentation & mathematics specs
-│   ├── algorithms/           # 11 individual modular algorithm specifications
+│   ├── algorithms/           # 12 individual modular algorithm specifications
 │   ├── algorithms.md         # Master algorithm index
 │   └── Intuition.md          # In-depth mathematics, quantum wave packets, and failure modes
 ├── Dockerfile                # Root container specification for GHCR deployment
