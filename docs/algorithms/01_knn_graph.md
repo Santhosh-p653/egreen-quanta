@@ -29,13 +29,13 @@ $$
 If the resulting graph $G = (V, E_{\text{sym}})$ contains $M > 1$ connected components $\{C_1, C_2, \dots, C_M\}$, bridge edges are added between disjoint components:
 
 $$
-E = E_{\text{sym}} \cup \bigcup_{m=1}^{M-1} \{(u^*_m, v^*_m), (v^*_m, u^*_m)\}
+E = E_{\text{sym}} \cup \bigcup_{m=1}^{M-1} \{(u^{*}_{m}, v^{*}_{m}), (v^{*}_{m}, u^{*}_{m})\}
 $$
 
 where:
 
 $$
-(u^*_m, v^*_m) = \underset{u \in C_m,\, v \in C_{m+1}}{\arg\min}\; d(u, v)
+(u^{*}_{m}, v^{*}_{m}) = \underset{u \in C_m,\, v \in C_{m+1}}{\arg\min}\; d(u, v)
 $$
 
 The unweighted base travel cost on edge $e = (u, v)$ is:
