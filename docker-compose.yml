@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: egreen_backend
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:///./egreen_quanta.db
+    volumes:
+      # Persist SQLite audit database across container recreations
+      - ./egreen_quanta.db:/app/backend/egreen_quanta.db
+    networks:
+      - egreen_net
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: egreen_frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - egreen_net
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: egreen_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - egreen_net
+
+networks:
+  egreen_net:
+    driver: bridge
