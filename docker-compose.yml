@@ -10,9 +10,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DATABASE_URL=sqlite:///./egreen_quanta.db
-    volumes:
-      # Persist SQLite audit database across container recreations
-      - ./egreen_quanta.db:/app/backend/egreen_quanta.db
     networks:
       - egreen_net
     expose:
